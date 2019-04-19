@@ -16,8 +16,6 @@
 // shall not be liable for any damages suffered as a result of using
 // and modifying this software.
 
-package pt.ulisboa.tecnico.cnv.statistics;
-
 public class StatisticsBranch 
 {
 	String class_name_;
