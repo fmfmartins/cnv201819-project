@@ -27,6 +27,8 @@ import java.lang.Thread.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import pt.ulisboa.tecnico.cnv.mss.*;
+
 
 public class StatisticsTool 
 {
@@ -51,6 +53,8 @@ public class StatisticsTool
 	private static int branch_pc;
 	private static String branch_class_name;
 	private static String branch_method_name;
+
+	public RequestMetrics xD = new RequestMetrics(1);
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 		

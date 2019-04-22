@@ -36,11 +36,33 @@ public class WebServer {
 
 		server.createContext("/climb", new MyHandler());
 
+		server.createContext("/test", new MyTestHandler());
+
 		// be aware! infinite pool of threads!
 		server.setExecutor(Executors.newCachedThreadPool());
 		server.start();
 
 		System.out.println(server.getAddress().toString());
+	}
+
+	static class MyTestHandler implements HttpHandler {
+		@Override
+		public void handle(final HttpExchange t) throws IOException {
+			final Headers headers = t.getResponseHeaders();
+
+			String response = "test ok";
+				
+			t.sendResponseHeaders(200, response.getBytes().length);
+
+			headers.add("Access-Control-Allow-Origin", "*");
+			headers.add("Access-Control-Allow-Credentials", "true");
+			headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
+			headers.add("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+	
+			OutputStream os = t.getResponseBody();
+			os.write(response.getBytes());
+			os.close();
+		}
 	}
 
 	static class MyHandler implements HttpHandler {
