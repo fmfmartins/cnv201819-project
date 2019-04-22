@@ -17,6 +17,7 @@
 // and modifying this software.
 
 import BIT.highBIT.*;
+
 import java.io.File;
 import java.util.Enumeration;
 import java.util.Vector;
@@ -28,6 +29,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+
 import pt.ulisboa.tecnico.cnv.mss.*;
 
 
@@ -53,10 +55,9 @@ public class MyTool
 	private static String branch_class_name;
 	private static String branch_method_name;
 
-	public static HashMap<Long, RequestMetrics> requests = new HashMap<>();
-
-
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+
+	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 		
 	public static void printUsage() {
 		System.out.println("Syntax: java StatisticsTool -stat_type in_path [out_path]");
@@ -153,7 +154,8 @@ public class MyTool
 		RequestMetrics metrics = new RequestMetrics(thread);
 		long time = System.currentTimeMillis()/1000;
 		metrics.setExecutionTime(time);
-		requests.put(thread, metrics);
+		System.out.println("SequenceID : " + sequenceID);
+		requests.put(sequenceID++, metrics);
     	}
 
 	public static synchronized void stopTime(int threadID){

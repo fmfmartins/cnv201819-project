@@ -40,11 +40,15 @@ import com.amazonaws.services.dynamodbv2.model.ScanResult;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 
+import pt.ulisboa.tecnico.cnv.mss.*;
+
 /**
  * This sample demonstrates how to perform a few simple operations with the
  * Amazon DynamoDB service.
  */
 public class AmazonDynamoDBSample {
+
+    private RequestMetricsStorage rms = RequestMetricsStorage.getInstace();
 
     /*
      * Before running the code:
@@ -97,6 +101,14 @@ public class AmazonDynamoDBSample {
     public static void main(String[] args) throws Exception {
         init();
 
+        //sequenceID == args[0]
+        if(args != null){
+            int sequenceID = Integer.parseInt(args[0]);
+        } else {
+            System.out.println("bad seq id");
+            return;
+        }
+
         try {
             String tableName = "statistics";
 
@@ -116,11 +128,12 @@ public class AmazonDynamoDBSample {
             TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
             System.out.println("Table Description: " + tableDescription);
 
-	    // Add an item
-	    Map<String, AttributeValue> item = newItem(123, 1, "LOW", "BFS", 69);
-	    PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
-	    PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-	    System.out.println("Result: " + putItemResult);
+            // Add an item
+            RequestMetrics metrics = rms.
+            Map<String, AttributeValue> item = newItem(123, 1, "LOW", "BFS", 69);
+            PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
+            PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
+            System.out.println("Result: " + putItemResult);
 
             /*Scan items for movies with a year attribute greater than 1985
             HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
@@ -150,11 +163,12 @@ public class AmazonDynamoDBSample {
 
     private static Map<String, AttributeValue> newItem(int time, int request_id, String category, String algorithm, int n_threads) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
+
         item.put("request_id", new AttributeValue().withN(Integer.toString(request_id)));
         item.put("category", new AttributeValue().withS(category));
         item.put("algorithm", new AttributeValue().withS(algorithm));
         item.put("n_threads", new AttributeValue().withN(Integer.toString(n_threads)));
-	item.put("time", new AttributeValue().withN(Integer.toString(time)));
+	    item.put("time", new AttributeValue().withN(Integer.toString(time)));
 
         return item;
     }

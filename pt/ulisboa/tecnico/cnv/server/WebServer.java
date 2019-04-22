@@ -21,10 +21,13 @@ import com.sun.net.httpserver.HttpServer;
 import pt.ulisboa.tecnico.cnv.solver.Solver;
 import pt.ulisboa.tecnico.cnv.solver.SolverArgumentParser;
 import pt.ulisboa.tecnico.cnv.solver.SolverFactory;
+import pt.ulisboa.tecnico.cnv.mss.*;
 
 import javax.imageio.ImageIO;
 
 public class WebServer {
+
+	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 
 	public static void main(final String[] args) throws Exception {
 
