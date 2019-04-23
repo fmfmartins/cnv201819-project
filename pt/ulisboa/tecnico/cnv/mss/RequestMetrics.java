@@ -1,25 +1,26 @@
 package pt.ulisboa.tecnico.cnv.mss;
 
-
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RequestMetrics {
 
-	private long threadID;
 
-	private long executionTime;
+	private static final AtomicInteger counter = new AtomicInteger(0);
+	private int sequenceID;
+	private long threadID;
 
 
 	public RequestMetrics(long threadID){
 		this.threadID = threadID;
-	}
-
-	public void setExecutionTime(long time){
-		this.executionTime = time;
+		this.sequenceID = counter.incrementAndGet();
 	}
 
 	public long getExecutionTime(){
 		return this.executionTime;
+	}
+
+	public int getSequenceID(){
+		return this.sequenceID;
 	}
 	
 

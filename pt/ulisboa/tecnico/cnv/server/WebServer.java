@@ -72,6 +72,8 @@ public class WebServer {
 		@Override
 		public void handle(final HttpExchange t) throws IOException {
 
+			System.out.println("HUEUHEHUUEHHUE:\t" + rms.getCurrentSequenceID());
+
 			// Get the query.
 			final String query = t.getRequestURI().getQuery();
 

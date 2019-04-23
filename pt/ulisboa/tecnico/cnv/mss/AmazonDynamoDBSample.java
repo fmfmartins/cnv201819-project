@@ -129,7 +129,7 @@ public class AmazonDynamoDBSample {
             System.out.println("Table Description: " + tableDescription);
 
             // Add an item
-            RequestMetrics metrics = rms.
+            RequestMetrics metrics;
             Map<String, AttributeValue> item = newItem(123, 1, "LOW", "BFS", 69);
             PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
             PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
