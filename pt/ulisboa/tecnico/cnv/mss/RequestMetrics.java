@@ -19,8 +19,8 @@ public class RequestMetrics {
 		return this.sequenceID;
 	}
 
-	public int getCount(){
-		return this.counter.get();
+	public static int getCount(){
+		return counter.get();
 	}
 	
 

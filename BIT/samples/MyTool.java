@@ -60,24 +60,18 @@ public class MyTool
 	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 		
 	public static void printUsage() {
-		System.out.println("Syntax: java StatisticsTool -stat_type in_path [out_path]");
-		System.out.println("        where stat_type can be:");
-		System.out.println("        static:     static properties");
-		System.out.println("        dynamic:    dynamic properties");
-		System.out.println("        alloc:      memory allocation instructions");
-		System.out.println("        load_store: loads and stores (both field and regular)");
-		System.out.println("        branch:     gathers branch outcome statistics");
-		System.out.println();
+		System.out.println("Syntax: java MyTool -dynamic in_path [out_path]");
 		System.out.println("        in_path:  directory from which the class files are read");
 		System.out.println("        out_path: directory to which the class files are written");
-		System.out.println("        Both in_path and out_path are required unless stat_type is static");
-		System.out.println("        in which case only in_path is required");
 		System.exit(-1);
 	}
 
 	public static void doDynamic(File in_dir, File out_dir) {
 		String filelist[] = in_dir.list();
+
 		
+		
+
 		for (int i = 0; i < filelist.length; i++) {
 			String filename = filelist[i];
 			if (filename.endsWith(".class")) {
@@ -93,6 +87,7 @@ public class MyTool
 						bb.addBefore("MyTool", "dynInstrCount", new Integer(bb.size()));
 					}
 					if(routine.getMethodName().equals("solveImage")){
+						System.out.println("HUEUHEHU:\t" + RequestMetrics.getCount());
 						//routine.addBefore("MyTool", "startTime", rms.getCurrentSequenceID());
 						//routine.addAfter("MyTool", "stopTime", rms.getCurrentSequenceID());
 						//routine.addAfter("MyTool", "printDynamic", "null");
