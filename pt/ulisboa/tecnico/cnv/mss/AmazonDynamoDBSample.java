@@ -48,7 +48,7 @@ import pt.ulisboa.tecnico.cnv.mss.*;
  */
 public class AmazonDynamoDBSample {
 
-    private RequestMetricsStorage rms = RequestMetricsStorage.getInstace();
+    private RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 
     /*
      * Before running the code:

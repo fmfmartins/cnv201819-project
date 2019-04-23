@@ -72,7 +72,7 @@ public class WebServer {
 
 			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
 
-			System.out.println("HUEUHEHUUEHHUE:\t" + rms.getCurrentCount());
+			System.out.println("HUEUHEHUUEHHUE:\t" + rms.Count());
 
 			// Get the query.
 			final String query = t.getRequestURI().getQuery();
