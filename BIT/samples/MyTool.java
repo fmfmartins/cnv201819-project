@@ -87,7 +87,6 @@ public class MyTool
 						bb.addBefore("MyTool", "dynInstrCount", new Integer(bb.size()));
 					}
 					if(routine.getMethodName().equals("solveImage")){
-						System.out.println("HUEUHEHU:\t" + RequestMetrics.getCount());
 						//routine.addBefore("MyTool", "startTime", rms.getCurrentSequenceID());
 						//routine.addAfter("MyTool", "stopTime", rms.getCurrentSequenceID());
 						//routine.addAfter("MyTool", "printDynamic", "null");
@@ -96,6 +95,10 @@ public class MyTool
 				ci.write(out_filename);
 			}
 		}
+	}
+
+	public static synchronized void printSequenceID(String foo){
+		System.out.println("MyTool:\t" Thread.currentThread().getId() + "\t" + RequestMetrics.getCount());
 	}
 	
 
