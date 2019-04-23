@@ -70,6 +70,8 @@ public class WebServer {
 		@Override
 		public void handle(final HttpExchange t) throws IOException {
 
+			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
+
 			System.out.println("HUEUHEHUUEHHUE:\t" + rms.getCurrentCount());
 
 			// Get the query.
