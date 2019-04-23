@@ -15,12 +15,12 @@ public class RequestMetrics {
 		this.sequenceID = counter.incrementAndGet();
 	}
 
-	public long getExecutionTime(){
-		return this.executionTime;
-	}
-
 	public int getSequenceID(){
 		return this.sequenceID;
+	}
+
+	public int getCurrentCount(){
+		return this.counter;
 	}
 	
 

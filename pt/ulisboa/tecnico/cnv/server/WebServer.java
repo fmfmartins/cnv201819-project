@@ -35,8 +35,6 @@ public class WebServer {
 
 		final HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
 
-
-
 		server.createContext("/climb", new MyHandler());
 
 		server.createContext("/test", new MyTestHandler());
@@ -72,7 +70,7 @@ public class WebServer {
 		@Override
 		public void handle(final HttpExchange t) throws IOException {
 
-			System.out.println("HUEUHEHUUEHHUE:\t" + rms.getCurrentSequenceID());
+			System.out.println("HUEUHEHUUEHHUE:\t" + rms.getCurrentCount());
 
 			// Get the query.
 			final String query = t.getRequestURI().getQuery();
