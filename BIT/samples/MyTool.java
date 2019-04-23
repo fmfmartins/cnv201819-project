@@ -93,8 +93,8 @@ public class MyTool
 						bb.addBefore("MyTool", "dynInstrCount", new Integer(bb.size()));
 					}
 					if(routine.getMethodName().equals("solveImage")){
-						routine.addBefore("MyTool", "startTime", rms.getCurrentSequenceID());
-						routine.addAfter("MyTool", "stopTime", rms.getCurrentSequenceID());
+						//routine.addBefore("MyTool", "startTime", rms.getCurrentSequenceID());
+						//routine.addAfter("MyTool", "stopTime", rms.getCurrentSequenceID());
 						//routine.addAfter("MyTool", "printDynamic", "null");
 					}
 				}
@@ -146,27 +146,6 @@ public class MyTool
 			e.printStackTrace();
 		}
 	}
-
-
-	public static synchronized void startTime(int sequenceID){
-		long thread = Thread.currentThread().getId();
-		System.out.println("StartTime ThreadID: " + thread);
-		RequestMetrics metrics = new RequestMetrics(sequenceID, thread);
-		long time = System.currentTimeMillis()/1000;
-		metrics.setExecutionTime(time);
-		System.out.println("SequenceID : " + metrics.getSequenceID());
-		rms.addRequestMetrics(metrics);
-    	}
-
-	public static synchronized void stopTime(int sequenceID){
-		long thread = Thread.currentThread().getId();
-		System.out.println("StopTime ThreadID: " + thread);
-		// CHANGE LATER, FOR TESTING ONLY
-		RequestMetrics metrics = rms.getAndRemoveRequestMetrics(sequenceID);
-		metrics.setExecutionTime((System.currentTimeMillis()/1000) - metrics.getExecutionTime());
-		rms.addRequestMetrics(metrics);
-        	System.out.println("Execution Time : " + metrics.getExecutionTime());
-    	} 
 
 	public static synchronized void dynInstrCount(int incr) {
 		dyn_instr_count += incr;

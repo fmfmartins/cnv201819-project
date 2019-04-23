@@ -7,7 +7,7 @@ public class RequestMetricsStorage {
 
     private static HashMap<Integer, RequestMetrics> requests = new HashMap<>();
 
-    private static final RequestMetricsStorage instance;
+    private static RequestMetricsStorage instance;
 
     private RequestMetricsStorage(){}
 
