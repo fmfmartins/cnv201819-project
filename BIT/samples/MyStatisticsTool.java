@@ -30,7 +30,7 @@ import java.util.Date;
 import pt.ulisboa.tecnico.cnv.mss.*;
 
 
-public class StatisticsTool 
+public class MyStatisticsTool 
 {
 	private static int dyn_bb_count = 0;
 	
@@ -158,7 +158,7 @@ public class StatisticsTool
 				BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 				writer.write("Dynamic information summary:\n");
 				writer.append("Number of basic blocks:\t" + dyn_bb_count + "\n");
-				writer.close();i
+				writer.close();
 
 				// RESET STATS
 				dyn_bb_count = 0;
@@ -374,27 +374,6 @@ public class StatisticsTool
 
 					if (in_dir.isDirectory() && out_dir.isDirectory()) {
 						doLoadStore(in_dir, out_dir);
-					}
-					else {
-						printUsage();
-					}
-				}
-				catch (NullPointerException e) {
-					printUsage();
-				}
-			}
-
-			else if (argv[0].equals("-branch")) {
-				if (argv.length != 3) {
-					printUsage();
-				}
-				
-				try {
-					File in_dir = new File(argv[1]);
-					File out_dir = new File(argv[2]);
-
-					if (in_dir.isDirectory() && out_dir.isDirectory()) {
-						doBranch(in_dir, out_dir);
 					}
 					else {
 						printUsage();
