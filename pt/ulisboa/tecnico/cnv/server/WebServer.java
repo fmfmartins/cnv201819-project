@@ -72,8 +72,6 @@ public class WebServer {
 
 			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
 
-			System.out.println("HUEUHEHUUEHHUE:\t" + metrics.getCount());
-
 			// Get the query.
 			final String query = t.getRequestURI().getQuery();
 
@@ -113,10 +111,10 @@ public class WebServer {
 				i++;
 			}
 
-			/*
+			
 			for(String ar : args) {
 				System.out.println("ar: " + ar);
-			} */
+			} 
 
 			SolverArgumentParser ap = null;
 			try {

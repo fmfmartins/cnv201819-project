@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 public class RequestMetricsStorage {
 
-    private static HashMap<Integer, RequestMetrics> requests = new HashMap<>();
+    private static HashMap<Long, RequestMetrics> requests = new HashMap<>();
 
     private static RequestMetricsStorage instance;
 
@@ -18,17 +18,16 @@ public class RequestMetricsStorage {
         return instance;
     }
 
-    public static synchronized int addRequestMetrics(RequestMetrics metrics){	
-        requests.put(new Integer(metrics.getSequenceID()), metrics);
-        return metrics.getSequenceID();
+    public static synchronized void addRequestMetrics(RequestMetrics metrics){	
+        requests.put(metrics.getThreadID(), metrics);
     }
 
-    public static synchronized RequestMetrics getRequestMetrics(int sequenceID){
-	return requests.get(sequenceID);
+    public static synchronized RequestMetrics getRequestMetrics(int threadID){
+	    return requests.get(threadID);
     }
 
-    public static synchronized RequestMetrics getAndRemoveRequestMetrics(int sequenceID){
-	return requests.remove(sequenceID);
+    public static synchronized RequestMetrics getAndRemoveRequestMetrics(int threadID){
+	    return requests.remove(threadID);
     }
 
 }
