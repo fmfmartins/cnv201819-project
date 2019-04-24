@@ -68,7 +68,7 @@ public class MyTool
 		}
 	}
 
-	public static void doLoadStore(File in_dir, File out_dir) {
+	public static void doInstrumentation(File in_dir, File out_dir) {
 		String filelist[] = in_dir.list();
 		
 		for (int i = 0; i < filelist.length; i++) {
@@ -81,22 +81,22 @@ public class MyTool
 				for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
 					Routine routine = (Routine) e.nextElement();
 					
+					for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
+						BasicBlock bb = (BasicBlock) b.nextElement();
+						bb.addBefore("MyTool", "dynBBCount", new Integer(1));
+					}
+					
 					for (Enumeration instrs = (routine.getInstructionArray()).elements(); instrs.hasMoreElements(); ) {
 						Instruction instr = (Instruction) instrs.nextElement();
 						int opcode=instr.getOpcode();
-						if (opcode == InstructionTable.getfield)
-							instr.addBefore("MyTool", "LSFieldCount", new Integer(0));
-						else if (opcode == InstructionTable.putfield)
-							instr.addBefore("MyTool", "LSFieldCount", new Integer(1));
-						else {
-							short instr_type = InstructionTable.InstructionTypeTable[opcode];
-							if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
-								instr.addBefore("MyTool", "LSCount", new Integer(0));
-							}
-							else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
-								instr.addBefore("MyTool", "LSCount", new Integer(1));
-							}
+						short instr_type = InstructionTable.InstructionTypeTable[opcode];
+						if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
+							instr.addBefore("MyTool", "LSCount", new Integer(0));
 						}
+						else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
+							instr.addBefore("MyTool", "LSCount", new Integer(1));
+						}
+						
 					}
 				}
 				ci.write(out_filename);
@@ -104,13 +104,6 @@ public class MyTool
 		}	
 	}
 
-
-	public static synchronized void LSFieldCount(int type) {
-		if (type == 0)
-			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrFieldLoadCount(1);
-		else
-			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrFieldStoreCount(1);
-	}
 
 	public static synchronized void LSCount(int type) {
 		if (type == 0)
@@ -128,31 +121,9 @@ public class MyTool
 
 	public static synchronized void printDynamic(String foo) {
 				
-		/*try {
-			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-			String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(timestamp) + ".txt";
-			File file = new File(fileName);
-			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-			writer.write("Dynamic information summary:\n");
-			writer.append("Number of methods:\t" + dyn_method_count+ "\n");
-			writer.append("Number of basic blocks:\t" + dyn_bb_count + "\n");
-			writer.append("Number of instructions:\t" + dyn_instr_count+ "\n");
-			writer.append("Average number of instructions per basic block:\t" + instr_per_bb + "\n");
-			writer.append("Average number of instructions per method:\t" + instr_per_method + "\n");
-			writer.append("Average number of basic blocks per method:\t" + bb_per_method + "\n");
-			writer.close();
-		}catch (IOException e){
-			e.printStackTrace();
-		}*/
-
-		RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
-		m.printInfo();
+		//RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
+		//m.printInfo();
 		//WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
-
-		// RESET STATS
-		dyn_method_count = 0;
-		dyn_bb_count = 0;
-		dyn_instr_count = 0;
 	}
 
 	public static void dynBBCount(int incr) {
@@ -169,8 +140,8 @@ public class MyTool
 
 				if (in_dir.isDirectory() && out_dir.isDirectory()) {
 					//ADICIONAR FUNCS DE INSTRUMENTACAO AQUI
-					doDynamic(in_dir, out_dir);
-					doLoadStore(in_dir, out_dir);
+					doInstrumentation(in_dir, out_dir);
+					//doLoadStore(in_dir, out_dir);
 				}
 				else {
 					printUsage();

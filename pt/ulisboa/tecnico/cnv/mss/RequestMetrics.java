@@ -70,14 +70,6 @@ public class RequestMetrics {
 		this.storecount += incr;
 	}
 
-	public void incrFieldLoadCount(int incr){
-		this.fieldloadcount += incr;
-	}
-
-	public void incrFieldStoreCount(int incr){
-		this.fieldstorecount += incr;
-	}
-
 	public void setBBCount(int bb){
 		this.bbCount = bb;
 	}
@@ -110,8 +102,6 @@ public class RequestMetrics {
 		System.out.println("Number of basic blocks: " + this.bbCount);
 		System.out.println("Load Instructions: " + this.loadcount);
 		System.out.println("Store Instructions: " + this.storecount);
-		System.out.println("Field Load Instructions: " + this.fieldloadcount);
-		System.out.println("Field Store Instructions: " + this.fieldstorecount);
 	}
 
 	public void outputToFile(){
@@ -144,8 +134,6 @@ public class RequestMetrics {
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
 		s += String.format("Load Instructions: %d\n" , this.loadcount);
 		s += String.format("Store Instructions: %d\n" , this.storecount);
-		s += String.format("Field Load Instructions: %d\n" , this.fieldloadcount);
-		s += String.format("Field Store Instructions: %d\n" , this.fieldstorecount);
 		return s;
 	}
 	
