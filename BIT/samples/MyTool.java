@@ -81,7 +81,7 @@ public class MyTool
                    
 					for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
 						BasicBlock bb = (BasicBlock) b.nextElement();
-						bb.addBefore("MyTool", "dynBBCount", new Integer(1);
+						bb.addBefore("MyTool", "dynBBCount", new Integer(1));
 					}
 					if(routine.getMethodName().equals("solveImage")){
 						//routine.addAfter("MyTool", "printSequenceID", "null");
