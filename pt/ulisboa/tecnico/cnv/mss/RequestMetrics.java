@@ -101,7 +101,7 @@ public class RequestMetrics {
 	@Override
 	public String toString(){
 		String s;
-		s = "\t//Request Parameters//\t";
+		s = "\t//Request Parameters//\t\n";
 		s += String.format("Width: %d\n" , this.w);
 		s += String.format("Height: %d\n", this.h);
 		s += String.format("Upper-Left Corner X: %d\n", this.x0);
@@ -112,8 +112,9 @@ public class RequestMetrics {
 		s += String.format("Starting Point Y: %d\n" , this.yS);
 		s += String.format("Solver Algorithm: %s\n" , this.s);
 		s += String.format("Image Path: %s\n" , this.i);
-		s += String.format("\t//Metrics//\t");
+		s += String.format("\t//Metrics//\t\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
+		return s;
 	}
 	
 
