@@ -118,7 +118,7 @@ public class MyTool
 		System.out.println("Average number of instructions per method:      " + instr_per_method);
 		System.out.println("Average number of basic blocks per method:      " + bb_per_method);
 			
-		try {
+		/*try {
 			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 			String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(timestamp) + ".txt";
 			File file = new File(fileName);
@@ -131,19 +131,18 @@ public class MyTool
 			writer.append("Average number of instructions per method:\t" + instr_per_method + "\n");
 			writer.append("Average number of basic blocks per method:\t" + bb_per_method + "\n");
 			writer.close();
-			
-			RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
-			m.setBBCount(dyn_bb_count);
-			WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
-
-			// RESET STATS
-			dyn_method_count = 0;
-			dyn_bb_count = 0;
-			dyn_instr_count = 0;
-
 		}catch (IOException e){
 			e.printStackTrace();
-		}
+		}*/
+
+		RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
+		m.setBBCount(dyn_bb_count);
+		WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
+
+		// RESET STATS
+		dyn_method_count = 0;
+		dyn_bb_count = 0;
+		dyn_instr_count = 0;
 	}
 
 	public static synchronized void dynInstrCount(int incr) {

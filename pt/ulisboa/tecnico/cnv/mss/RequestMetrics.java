@@ -79,11 +79,15 @@ public class RequestMetrics {
 	}
 
 	public void outputToFile(){
-		String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(this.timestamp) + ".txt";
-		File file = new File(fileName);
-		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-		writer.write(this.toString());
-		writer.close();
+		try{
+			String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(this.timestamp) + ".txt";
+			File file = new File(fileName);
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			writer.write(this.toString());
+			writer.close();
+		} catch (IOException e){
+			e.printStackTrace();
+		}
 	}
 
 	@Override
