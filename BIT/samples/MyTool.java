@@ -34,7 +34,7 @@ public class MyTool
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
-	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
+	//private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 		
 	public static void printUsage() {
 		System.out.println("Syntax: java MyTool in_path [out_path]");
@@ -60,7 +60,6 @@ public class MyTool
 						bb.addBefore("MyTool", "dynBBCount", new Integer(1));
 					}
 					if(routine.getMethodName().equals("solveImage")){
-						//routine.addAfter("MyTool", "printSequenceID", "null");
 						routine.addAfter("MyTool", "printDynamic", "null");
 					}
 				}
@@ -69,14 +68,66 @@ public class MyTool
 		}
 	}
 
+	public static void doLoadStore(File in_dir, File out_dir) {
+		String filelist[] = in_dir.list();
+		
+		for (int i = 0; i < filelist.length; i++) {
+			String filename = filelist[i];
+			if (filename.endsWith(".class")) {
+				String in_filename = in_dir.getAbsolutePath() + System.getProperty("file.separator") + filename;
+				String out_filename = out_dir.getAbsolutePath() + System.getProperty("file.separator") + filename;
+				ClassInfo ci = new ClassInfo(in_filename);
+
+				for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
+					Routine routine = (Routine) e.nextElement();
+					
+					for (Enumeration instrs = (routine.getInstructionArray()).elements(); instrs.hasMoreElements(); ) {
+						Instruction instr = (Instruction) instrs.nextElement();
+						int opcode=instr.getOpcode();
+						if (opcode == InstructionTable.getfield)
+							instr.addBefore("MyTool", "LSFieldCount", new Integer(0));
+						else if (opcode == InstructionTable.putfield)
+							instr.addBefore("MyTool", "LSFieldCount", new Integer(1));
+						else {
+							short instr_type = InstructionTable.InstructionTypeTable[opcode];
+							if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
+								instr.addBefore("MyTool", "LSCount", new Integer(0));
+							}
+							else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
+								instr.addBefore("MyTool", "LSCount", new Integer(1));
+							}
+						}
+					}
+				}
+				ci.write(out_filename);
+			}
+		}	
+	}
+
+
+	public static synchronized void LSFieldCount(int type) {
+		if (type == 0)
+			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrFieldLoadCount(1);
+		else
+			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrFieldStoreCount(1);
+	}
+
+	public static synchronized void LSCount(int type) {
+		if (type == 0)
+			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrLoadCount(1);
+		else
+			WebServer.metricsStorage.get(Thread.currentThread().getId()).incrStoreCount(1);
+	}
+
+
+
 	public static synchronized void printSequenceID(String foo){
 		System.out.println("MyTool:\t" + Thread.currentThread().getId() + "\t" + RequestMetrics.getCount());
 	}
 	
 
 	public static synchronized void printDynamic(String foo) {
-			
-			
+				
 		/*try {
 			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 			String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(timestamp) + ".txt";
@@ -119,6 +170,7 @@ public class MyTool
 				if (in_dir.isDirectory() && out_dir.isDirectory()) {
 					//ADICIONAR FUNCS DE INSTRUMENTACAO AQUI
 					doDynamic(in_dir, out_dir);
+					doLoadStore(in_dir, out_dir);
 				}
 				else {
 					printUsage();

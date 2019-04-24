@@ -31,6 +31,10 @@ public class RequestMetrics {
 	private String i;
 	
 	private int bbCount;
+	private int loadcount;
+	private int storecount;
+	private int fieldloadcount;
+	private int fieldstorecount;
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
@@ -56,6 +60,22 @@ public class RequestMetrics {
 		this.yS = yS;
 		this.s = s;
 		this.i = i;
+	}
+
+	public void incrLoadCount(int incr){
+		this.loadcount += incr;
+	}
+
+	public void incrStoreCount(int incr){
+		this.storecount += incr;
+	}
+
+	public void incrFieldLoadCount(int incr){
+		this.fieldloadcount += incr;
+	}
+
+	public void incrFieldStoreCount(int incr){
+		this.fieldstorecount += incr;
 	}
 
 	public void setBBCount(int bb){
@@ -88,6 +108,10 @@ public class RequestMetrics {
 		System.out.println("Image Path: " + this.i);
 		System.out.println("\t//Metrics//\t");
 		System.out.println("Number of basic blocks: " + this.bbCount);
+		System.out.println("Load Instructions: " + this.loadcount);
+		System.out.println("Store Instructions: " + this.storecount);
+		System.out.println("Field Load Instructions: " + this.fieldloadcount);
+		System.out.println("Field Store Instructions: " + this.fieldstorecount);
 	}
 
 	public void outputToFile(){
@@ -118,6 +142,10 @@ public class RequestMetrics {
 		s += String.format("Image Path: %s\n" , this.i);
 		s += String.format("\t//Metrics//\t\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
+		s += System.format("Load Instructions: %d\n" , this.loadcount);
+		s += System.format("Store Instructions: %d\n" , this.storecount);
+		s += System.format("Field Load Instructions: %d\n" , this.fieldloadcount);
+		s += System.format("Field Store Instructions: %d\n" , this.fieldstorecount);
 		return s;
 	}
 	
