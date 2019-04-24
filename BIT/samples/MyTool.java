@@ -1,21 +1,3 @@
-//
-// StatisticsTool.java
-//
-// This program measures and instruments to obtain different statistics
-// about Java programs.
-//
-// Copyright (c) 1998 by Han B. Lee (hanlee@cs.colorado.edu).
-// ALL RIGHTS RESERVED.
-//
-// Permission to use, copy, modify, and distribute this software and its
-// documentation for non-commercial purposes is hereby granted provided 
-// that this copyright notice appears in all copies.
-// 
-// This software is provided "as is".  The licensor makes no warrenties, either
-// expressed or implied, about its correctness or performance.  The licensor
-// shall not be liable for any damages suffered as a result of using
-// and modifying this software.
-
 import BIT.highBIT.*;
 
 import java.io.File;
@@ -50,18 +32,12 @@ public class MyTool
 	private static int fieldloadcount = 0;
 	private static int fieldstorecount = 0;
 
-	private static StatisticsBranch[] branch_info;
-	private static int branch_number;
-	private static int branch_pc;
-	private static String branch_class_name;
-	private static String branch_method_name;
-
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
 	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 		
 	public static void printUsage() {
-		System.out.println("Syntax: java MyTool -dynamic in_path [out_path]");
+		System.out.println("Syntax: java MyTool in_path [out_path]");
 		System.out.println("        in_path:  directory from which the class files are read");
 		System.out.println("        out_path: directory to which the class files are written");
 		System.exit(-1);
@@ -100,22 +76,6 @@ public class MyTool
 
 	public static synchronized void printDynamic(String foo) {
 			
-		System.out.println("Dynamic information summary:");
-		System.out.println("Number of methods:      " + dyn_method_count);
-		System.out.println("Number of basic blocks: " + dyn_bb_count);
-		System.out.println("Number of instructions: " + dyn_instr_count);
-	
-		if (dyn_method_count == 0) {
-			return;
-		}
-	
-		float instr_per_bb = (float) dyn_instr_count / (float) dyn_bb_count;
-		float instr_per_method = (float) dyn_instr_count / (float) dyn_method_count;
-		float bb_per_method = (float) dyn_bb_count / (float) dyn_method_count;
-	
-		System.out.println("Average number of instructions per basic block: " + instr_per_bb);
-		System.out.println("Average number of instructions per method:      " + instr_per_method);
-		System.out.println("Average number of basic blocks per method:      " + bb_per_method);
 			
 		/*try {
 			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
@@ -135,8 +95,8 @@ public class MyTool
 		}*/
 
 		RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
-		m.setBBCount(dyn_bb_count);
-		WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
+		m.printInfo();
+		//WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
 
 		// RESET STATS
 		dyn_method_count = 0;
@@ -148,24 +108,16 @@ public class MyTool
 		WebServer.metricsStorage.get(Thread.currentThread().getId()).incrBBCount(incr);
 	}
 
-	public static synchronized void dynMethodCount(int incr) {
-		dyn_method_count++;
-	}
-
 	public static void main(String argv[]) {
-		if (argv.length < 2 || !argv[0].startsWith("-")) {
+		if (argv.length != 2) {
 			printUsage();
-		}
-		if (argv[0].equals("-dynamic")) {
-			if (argv.length != 3) {
-				printUsage();
-			}
-			
+		}else {
 			try {
-				File in_dir = new File(argv[1]);
-				File out_dir = new File(argv[2]);
+				File in_dir = new File(argv[0]);
+				File out_dir = new File(argv[1]);
 
 				if (in_dir.isDirectory() && out_dir.isDirectory()) {
+					//ADICIONAR FUNCS DE INSTRUMENTACAO AQUI
 					doDynamic(in_dir, out_dir);
 				}
 				else {
@@ -176,6 +128,5 @@ public class MyTool
 				printUsage();
 			}
 		}
-			
 	}
 }
