@@ -121,7 +121,8 @@ public class WebServer {
 					args[17], args[19]);
 
 			metricsStorage.put(Thread.currentThread().getId(), metrics);
-			metricsStorage.get(Thread.currentThread().getId()).printInfo();
+
+			//metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 			SolverArgumentParser ap = null;
 			try {
@@ -165,7 +166,10 @@ public class WebServer {
 				e.printStackTrace();
 			}
 
-			metricsStorage.get(Thread.currentThread().getId()).printInfo();
+			RequestMetrics m = metricsStorage.get(Thread.currentThread().getId());
+			m.printInfo();
+
+			m.outputToFile();
 
 
 

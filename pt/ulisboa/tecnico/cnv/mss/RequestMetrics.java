@@ -1,6 +1,10 @@
 package pt.ulisboa.tecnico.cnv.mss;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 
 public class RequestMetrics {
 
@@ -18,6 +22,7 @@ public class RequestMetrics {
 	private int yS;
 	private String s;
 	private String i;
+	private Timestamp timestamp;
 
 	private int bbCount;
 
@@ -25,6 +30,7 @@ public class RequestMetrics {
 	public RequestMetrics(long threadID){
 		this.threadID = threadID;
 		this.sequenceID = counter.incrementAndGet();
+		this.timestamp = new Timestamp(System.currentTimeMillis());
 	}
 
 	public int getSequenceID(){
@@ -70,6 +76,32 @@ public class RequestMetrics {
 		System.out.println("Image Path: " + this.i);
 		System.out.println("\t//Metrics//\t");
 		System.out.println("Number of basic blocks: " + this.bbCount);
+	}
+
+	public void outputToFile(){
+		String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(this.timestamp) + ".txt";
+		File file = new File(fileName);
+		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+		writer.write(this.toString());
+		writer.close();
+	}
+
+	@Override
+	public String toString(){
+		String s;
+		s = "\t//Request Parameters//\t";
+		s += String.format("Width: %d\n" , this.w);
+		s += String.format("Height: %d\n", this.h);
+		s += String.format("Upper-Left Corner X: %d\n", this.x0);
+		s += String.format("Upper-left Corner Y: %d\n" , this.y0);
+		s += String.format("Lower-Right Corner X: %d\n" , this.x1);
+		s += String.format("Lower-Right Corner Y: %d\n" , this.y1);
+		s += String.format("Starting Point X: %d\n" , this.xS);
+		s += String.format("Starting Point Y: %d\n" , this.yS);
+		s += String.format("Solver Algorithm: %s\n" , this.s);
+		s += String.format("Image Path: %s\n" , this.i);
+		s += String.format("\t//Metrics//\t");
+		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
 	}
 	
 
