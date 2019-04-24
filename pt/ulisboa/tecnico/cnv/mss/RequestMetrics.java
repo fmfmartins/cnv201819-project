@@ -4,14 +4,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.io.File;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 
 public class RequestMetrics {
 
 
 	private static final AtomicInteger counter = new AtomicInteger(0);
+
 	private int sequenceID;
 	private long threadID;
+	private Timestamp timestamp;
+
 	private int w;
 	private int h;
 	private int x0;
@@ -22,9 +29,10 @@ public class RequestMetrics {
 	private int yS;
 	private String s;
 	private String i;
-	private Timestamp timestamp;
-
+	
 	private int bbCount;
+
+	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
 
 	public RequestMetrics(long threadID){
