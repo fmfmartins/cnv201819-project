@@ -142,10 +142,10 @@ public class RequestMetrics {
 		s += String.format("Image Path: %s\n" , this.i);
 		s += String.format("\t//Metrics//\t\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
-		s += System.format("Load Instructions: %d\n" , this.loadcount);
-		s += System.format("Store Instructions: %d\n" , this.storecount);
-		s += System.format("Field Load Instructions: %d\n" , this.fieldloadcount);
-		s += System.format("Field Store Instructions: %d\n" , this.fieldstorecount);
+		s += String.format("Load Instructions: %d\n" , this.loadcount);
+		s += String.format("Store Instructions: %d\n" , this.storecount);
+		s += String.format("Field Load Instructions: %d\n" , this.fieldloadcount);
+		s += String.format("Field Store Instructions: %d\n" , this.fieldstorecount);
 		return s;
 	}
 	
