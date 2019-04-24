@@ -19,6 +19,8 @@ public class RequestMetrics {
 	private String s;
 	private String i;
 
+	private int bbCount;
+
 
 	public RequestMetrics(long threadID){
 		this.threadID = threadID;
@@ -29,9 +31,9 @@ public class RequestMetrics {
 		return this.sequenceID;
 	}
 
-	public void setParams(int x, int y, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
-		this.x = x;
-		this.y = y;
+	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
+		this.w = w;
+		this.h = h;
 		this.x0 = x0;
 		this.y0 = y0;
 		this.x1 = x1;
@@ -42,12 +44,32 @@ public class RequestMetrics {
 		this.i = i;
 	}
 
+	public void setBBCount(int bb){
+		this.bbCount = bb;
+	}
+
 	public static int getCount(){
 		return counter.get();
 	}
 
 	public long getThreadID(){
 		return this.threadID;
+	}
+
+	public void printInfo(){
+		System.out.println("\t//Request Parameters//\t");
+		System.out.println("Width: " + this.w);
+		System.out.println("Height: " + this.h);
+		System.out.println("Upper-Left Corner X: " + this.x0);
+		System.out.println("Upper-left Corner Y: " + this.y0);
+		System.out.println("Lower-Right Corner X: " + this.x1);
+		System.out.println("Lower-Right Corner Y: " + this.y1);
+		System.out.println("Starting Point X: " + this.xS);
+		System.out.println("Starting Point Y: " + this.yS);
+		System.out.println("Solver Algorithm: " + this.s);
+		System.out.println("Image Path: " + this.i);
+		System.out.println("\t//Metrics//\t");
+		System.out.println("Number of basic blocks: " + this.bbCount);
 	}
 	
 

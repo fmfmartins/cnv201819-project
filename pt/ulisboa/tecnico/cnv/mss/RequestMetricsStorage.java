@@ -22,11 +22,11 @@ public class RequestMetricsStorage {
         requests.put(metrics.getThreadID(), metrics);
     }
 
-    public static synchronized RequestMetrics getRequestMetrics(int threadID){
+    public static synchronized RequestMetrics getRequestMetrics(long threadID){
 	    return requests.get(threadID);
     }
 
-    public static synchronized RequestMetrics getAndRemoveRequestMetrics(int threadID){
+    public static synchronized RequestMetrics getAndRemoveRequestMetrics(long threadID){
 	    return requests.remove(threadID);
     }
 

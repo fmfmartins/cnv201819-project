@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 
 import pt.ulisboa.tecnico.cnv.mss.*;
+import pt.ulisboa.tecnico.cnv.server.WebServer;
 
 
 public class MyTool 
@@ -69,9 +70,6 @@ public class MyTool
 	public static void doDynamic(File in_dir, File out_dir) {
 		String filelist[] = in_dir.list();
 
-		
-		
-
 		for (int i = 0; i < filelist.length; i++) {
 			String filename = filelist[i];
 			if (filename.endsWith(".class")) {
@@ -87,9 +85,8 @@ public class MyTool
 						bb.addBefore("MyTool", "dynInstrCount", new Integer(bb.size()));
 					}
 					if(routine.getMethodName().equals("solveImage")){
-						//routine.addBefore("MyTool", "startTime", rms.getCurrentSequenceID());
-						//routine.addAfter("MyTool", "stopTime", rms.getCurrentSequenceID());
-						//routine.addAfter("MyTool", "printDynamic", "null");
+						//routine.addAfter("MyTool", "printSequenceID", "null");
+						routine.addAfter("MyTool", "printDynamic", "null");
 					}
 				}
 				ci.write(out_filename);
@@ -98,7 +95,7 @@ public class MyTool
 	}
 
 	public static synchronized void printSequenceID(String foo){
-		System.out.println("MyTool:\t" Thread.currentThread().getId() + "\t" + RequestMetrics.getCount());
+		System.out.println("MyTool:\t" + Thread.currentThread().getId() + "\t" + RequestMetrics.getCount());
 	}
 	
 
@@ -134,6 +131,10 @@ public class MyTool
 			writer.append("Average number of instructions per method:\t" + instr_per_method + "\n");
 			writer.append("Average number of basic blocks per method:\t" + bb_per_method + "\n");
 			writer.close();
+			
+			RequestMetrics m = WebServer.metricsStorage.get(Thread.currentThread().getId());
+			m.setBBCount(dyn_bb_count);
+			WebServer.metricsStorage.put(Thread.currentThread().getId(), m);
 
 			// RESET STATS
 			dyn_method_count = 0;

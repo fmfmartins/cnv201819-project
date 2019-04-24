@@ -27,7 +27,7 @@ import javax.imageio.ImageIO;
 
 public class WebServer {
 
-	private static final RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
+	public static HashMap<Long, RequestMetrics> metricsStorage = new HashMap<>();
 
 	public static void main(final String[] args) throws Exception {
 
@@ -111,10 +111,17 @@ public class WebServer {
 				i++;
 			}
 
-			
+			/*
 			for(String ar : args) {
 				System.out.println("ar: " + ar);
-			} 
+			} */
+
+			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]), Integer.parseInt(args[7]),
+					Integer.parseInt(args[9]), Integer.parseInt(args[11]), Integer.parseInt(args[13]), Integer.parseInt(args[15]),
+					args[17], args[19]);
+
+			metricsStorage.put(Thread.currentThread().getId(), metrics);
+			metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 			SolverArgumentParser ap = null;
 			try {
@@ -157,6 +164,8 @@ public class WebServer {
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
+
+			metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 
 
