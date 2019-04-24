@@ -78,11 +78,10 @@ public class MyTool
 				ClassInfo ci = new ClassInfo(in_filename);
 				for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
 					Routine routine = (Routine) e.nextElement();
-					routine.addBefore("MyTool", "dynMethodCount", new Integer(1));
                    
 					for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
 						BasicBlock bb = (BasicBlock) b.nextElement();
-						bb.addBefore("MyTool", "dynInstrCount", new Integer(bb.size()));
+						bb.addBefore("MyTool", "dynBBCount", new Integer(1);
 					}
 					if(routine.getMethodName().equals("solveImage")){
 						//routine.addAfter("MyTool", "printSequenceID", "null");
@@ -145,9 +144,8 @@ public class MyTool
 		dyn_instr_count = 0;
 	}
 
-	public static synchronized void dynInstrCount(int incr) {
-		dyn_instr_count += incr;
-		dyn_bb_count++;
+	public static void dynBBCount(int incr) {
+		WebServer.metricsStorage.get(Thread.currentThread().getId()).incrBBCount(incr);
 	}
 
 	public static synchronized void dynMethodCount(int incr) {

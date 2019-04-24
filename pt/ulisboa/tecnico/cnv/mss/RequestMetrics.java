@@ -62,6 +62,10 @@ public class RequestMetrics {
 		this.bbCount = bb;
 	}
 
+	public void incrBBCount(int incr){
+		this.bbCount += incr;
+	}
+
 	public static int getCount(){
 		return counter.get();
 	}
