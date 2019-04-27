@@ -25,17 +25,7 @@ export BASH_RED="\e[91m"
 export BASH_DEFAULT="\e[39m"
 export BASH_GREEN="\e[32m"
 
-echo -e " _    _ _ _ _          _____ _ _           _     "
-echo -e "| |  | (_) | |  ____  / ____| (_)         | |    "
-echo -e "| |__| |_| | | / __ \| |    | |_ _ __ ___ | |__  "
-echo -e "|  __  | | | |/ / _\` | |    | | | '_ \` _ \| '_ \ "
-echo -e "| |  | | | | | | (_| | |____| | | | | | | | |_) |"
-echo -e "|_|  |_|_|_|_|\ \__,_|\_____|_|_|_| |_| |_|_.__/ "
-echo -e "               \____/                            "
-echo -e ""
-echo -e "Hello $USER! Have a lot of fun!"
-echo -e ""
-echo -e "Project loaded"
+cat mountain.txt
 
 mkdir -p $CNV_TMP
 mkdir -p $CNV_LOGS
