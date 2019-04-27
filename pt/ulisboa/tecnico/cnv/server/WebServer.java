@@ -26,9 +26,6 @@ import pt.ulisboa.tecnico.cnv.mss.*;
 import javax.imageio.ImageIO;
 
 public class WebServer {
-
-	public static HashMap<Long, RequestMetrics> metricsStorage = new HashMap<>();
-
 	public static void main(final String[] args) throws Exception {
 
 		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
@@ -70,7 +67,7 @@ public class WebServer {
 		@Override
 		public void handle(final HttpExchange t) throws IOException {
 
-			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
+			RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
 
 			// Get the query.
 			final String query = t.getRequestURI().getQuery();
@@ -116,28 +113,30 @@ public class WebServer {
 				System.out.println("ar: " + ar);
 			} */
 
+			// Store the request parameters
+
+			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
+
 			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]), Integer.parseInt(args[7]),
 					Integer.parseInt(args[9]), Integer.parseInt(args[11]), Integer.parseInt(args[13]), Integer.parseInt(args[15]),
 					args[17], args[19]);
 
-			metricsStorage.put(Thread.currentThread().getId(), metrics);
+			rms.metricsStorage.put(Thread.currentThread().getId(), metrics);
 
-			//metricsStorage.get(Thread.currentThread().getId()).printInfo();
+			rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 			SolverArgumentParser ap = null;
+			
 			try {
-				// Get user-provided flags.
 				ap = new SolverArgumentParser(args);
-			}
-			catch(Exception e) {
-				System.out.println(e);
-				return;
+			} catch (Exception e){
+				System.out.println(e.getMessage());
 			}
 
 			System.out.println("> Finished parsing args.");
 
 			// Create solver instance from factory.
-			final Solver s = SolverFactory.getInstance().makeSolver(ap);
+			Solver s = SolverFactory.getInstance().makeSolver(ap);
 
 			// Write figure file to disk.
 			File responseFile = null;
@@ -166,7 +165,7 @@ public class WebServer {
 				e.printStackTrace();
 			}
 
-			RequestMetrics m = metricsStorage.get(Thread.currentThread().getId());
+			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			m.printInfo();
 
 			m.outputToFile();
@@ -188,11 +187,9 @@ public class WebServer {
 			final OutputStream os = t.getResponseBody();
 			Files.copy(responseFile.toPath(), os);
 
-
 			os.close();
 
 			System.out.println("> Sent response to " + t.getRemoteAddress().toString());
 		}
 	}
-
 }
