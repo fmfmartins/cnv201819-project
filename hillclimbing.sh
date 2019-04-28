@@ -57,7 +57,7 @@ build() {
 	echo "Compiling CNV_METRICS ..."
 	javac $CNV_METRICS/*.java
 	check Compilation
-	cp -r pt/ $CNV_TMP/
+	cp -r $CNV_ROOT/pt/ $CNV_TMP/
 	check Backup
 }
 

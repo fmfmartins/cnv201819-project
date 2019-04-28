@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+package pt.ulisboa.tecnico.cnv.mss;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +39,8 @@ import com.amazonaws.services.dynamodbv2.model.PutItemResult;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.ScanResult;
+import com.amazonaws.services.dynamodbv2.model.QueryRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryResult;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 
@@ -46,9 +50,10 @@ import pt.ulisboa.tecnico.cnv.mss.*;
  * This sample demonstrates how to perform a few simple operations with the
  * Amazon DynamoDB service.
  */
-public class AmazonDynamoDBSample {
+public class AmazonDynamoDBUploader {
 
     private RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
+    private static String TABLENAME = "statistics";
 
     /*
      * Before running the code:
@@ -98,22 +103,13 @@ public class AmazonDynamoDBSample {
             .build();
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void createTable() throws Exception {
         init();
 
-        //sequenceID == args[0]
-        if(args != null){
-            int sequenceID = Integer.parseInt(args[0]);
-        } else {
-            System.out.println("bad seq id");
-            return;
-        }
-
         try {
-            String tableName = "statistics";
 
-            // Create a table with a primary hash key named 'name', which holds a string
-            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(tableName)
+            // Create a table with a primary hash key named 'request_id', which holds a string
+            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBUploader.TABLENAME)
                 .withKeySchema(new KeySchemaElement().withAttributeName("request_id").withKeyType(KeyType.HASH))
                 .withAttributeDefinitions(new AttributeDefinition().withAttributeName("request_id").withAttributeType(ScalarAttributeType.N))
                 .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
@@ -121,19 +117,19 @@ public class AmazonDynamoDBSample {
             // Create table if it does not exist yet
             TableUtils.createTableIfNotExists(dynamoDB, createTableRequest);
             // wait for the table to move into ACTIVE state
-            TableUtils.waitUntilActive(dynamoDB, tableName);
+            TableUtils.waitUntilActive(dynamoDB, AmazonDynamoDBUploader.TABLENAME);
 
             // Describe our new table
-            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(tableName);
+            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(AmazonDynamoDBUploader.TABLENAME);
             TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
             System.out.println("Table Description: " + tableDescription);
 
             // Add an item
-            RequestMetrics metrics;
+            /*RequestMetrics metrics;
             Map<String, AttributeValue> item = newItem(123, 1, "LOW", "BFS", 69);
             PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
             PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-            System.out.println("Result: " + putItemResult);
+            System.out.println("Result: " + putItemResult);*/
 
             /*Scan items for movies with a year attribute greater than 1985
             HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
@@ -161,16 +157,39 @@ public class AmazonDynamoDBSample {
         }
     }
 
-    private static Map<String, AttributeValue> newItem(int time, int request_id, String category, String algorithm, int n_threads) {
+
+    public static Map<String, AttributeValue> uploadItem(RequestMetrics metrics) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
 
-        item.put("request_id", new AttributeValue().withN(Integer.toString(request_id)));
-        item.put("category", new AttributeValue().withS(category));
-        item.put("algorithm", new AttributeValue().withS(algorithm));
-        item.put("n_threads", new AttributeValue().withN(Integer.toString(n_threads)));
-	    item.put("time", new AttributeValue().withN(Integer.toString(time)));
+        item.put("request_id", new AttributeValue().withN(Integer.toString(metrics.getSequenceID())));
+        item.put("width", new AttributeValue().withN(Integer.toString(metrics.getW())));
+        item.put("height", new AttributeValue().withN(Integer.toString(metrics.getH())));
+        item.put("upper_left_x", new AttributeValue().withN(Integer.toString(metrics.getX0())));
+        item.put("upper_left_y", new AttributeValue().withN(Integer.toString(metrics.getY0())));
+        item.put("lower_right_x", new AttributeValue().withN(Integer.toString(metrics.getX1())));
+        item.put("lower_right_y", new AttributeValue().withN(Integer.toString(metrics.getY1())));
+        item.put("start_x", new AttributeValue().withN(Integer.toString(metrics.getXS())));
+        item.put("start_y", new AttributeValue().withN(Integer.toString(metrics.getYS())));
+        item.put("solver_algorithm", new AttributeValue().withS(metrics.getAlgorithm()));
+        item.put("image_name", new AttributeValue().withS(metrics.getImage()));
+        item.put("basic_blocks", new AttributeValue().withN(Integer.toString(metrics.getBbCount())));
+        item.put("load_instructions", new AttributeValue().withN(Integer.toString(metrics.getLoadcount())));
+        item.put("store_instructions", new AttributeValue().withN(Integer.toString(metrics.getStorecount())));
+        PutItemRequest putItemRequest = new PutItemRequest(AmazonDynamoDBUploader.TABLENAME, item);
+        PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
+        System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);
 
         return item;
+    }
+
+    public static int getLatestCounter(){
+        QueryRequest queryRequest = new QueryRequest(AmazonDynamoDBUploader.TABLENAME)
+                                        .withLimit(1)
+                                        .withScanIndexForward(false);
+
+        QueryResult queryResult = dynamoDB.query(queryRequest);
+        System.out.println("Query Result: " + queryResult);
+        return 69;
     }
 
 }

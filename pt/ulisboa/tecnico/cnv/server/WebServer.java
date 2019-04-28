@@ -30,6 +30,21 @@ public class WebServer {
 
 		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
 
+		Runnable r = new Runnable(){
+		
+			@Override
+			public void run() {
+				try{
+					AmazonDynamoDBUploader.createTable();
+				} catch (Exception e){
+					System.out.println(e.getMessage());
+				}
+				
+			}
+		};
+
+		new Thread(r).start();
+
 		final HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
 
 		server.createContext("/climb", new MyHandler());
@@ -165,10 +180,14 @@ public class WebServer {
 				e.printStackTrace();
 			}
 
+			//Output to file 
+
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			m.printInfo();
 			m.outputToFile();
 
+			// Upload to amazon DynamoDB
+			AmazonDynamoDBUploader.uploadItem(m);
 
 			// Send response to browser.
 			final Headers hdrs = t.getResponseHeaders();

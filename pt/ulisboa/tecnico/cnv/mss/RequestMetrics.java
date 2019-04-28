@@ -41,8 +41,16 @@ public class RequestMetrics {
 
 	public RequestMetrics(long threadID){
 		this.threadID = threadID;
-		this.sequenceID = counter.incrementAndGet();
+		this.sequenceID = counter.incrementAndGet() /*+ AmazonDynamoDBUploader.getLatestCounter()*/;
 		this.timestamp = new Timestamp(System.currentTimeMillis());
+	}
+
+	public String getAlgorithm(){
+		return this.s;
+	}
+
+	public String getImage(){
+		return this.i;
 	}
 
 	public int getSequenceID(){
@@ -137,5 +145,230 @@ public class RequestMetrics {
 		return s;
 	}
 	
+
+
+    /**
+     * @param sequenceID the sequenceID to set
+     */
+    public void setSequenceID(int sequenceID) {
+        this.sequenceID = sequenceID;
+    }
+
+    /**
+     * @param threadID the threadID to set
+     */
+    public void setThreadID(long threadID) {
+        this.threadID = threadID;
+    }
+
+    /**
+     * @return Timestamp return the timestamp
+     */
+    public Timestamp getTimestamp() {
+        return timestamp;
+    }
+
+    /**
+     * @param timestamp the timestamp to set
+     */
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * @return int return the w
+     */
+    public int getW() {
+        return w;
+    }
+
+    /**
+     * @param w the w to set
+     */
+    public void setW(int w) {
+        this.w = w;
+    }
+
+    /**
+     * @return int return the h
+     */
+    public int getH() {
+        return h;
+    }
+
+    /**
+     * @param h the h to set
+     */
+    public void setH(int h) {
+        this.h = h;
+    }
+
+    /**
+     * @return int return the x0
+     */
+    public int getX0() {
+        return x0;
+    }
+
+    /**
+     * @param x0 the x0 to set
+     */
+    public void setX0(int x0) {
+        this.x0 = x0;
+    }
+
+    /**
+     * @return int return the x1
+     */
+    public int getX1() {
+        return x1;
+    }
+
+    /**
+     * @param x1 the x1 to set
+     */
+    public void setX1(int x1) {
+        this.x1 = x1;
+    }
+
+    /**
+     * @return int return the y0
+     */
+    public int getY0() {
+        return y0;
+    }
+
+    /**
+     * @param y0 the y0 to set
+     */
+    public void setY0(int y0) {
+        this.y0 = y0;
+    }
+
+    /**
+     * @return int return the y1
+     */
+    public int getY1() {
+        return y1;
+    }
+
+    /**
+     * @param y1 the y1 to set
+     */
+    public void setY1(int y1) {
+        this.y1 = y1;
+    }
+
+    /**
+     * @return int return the xS
+     */
+    public int getXS() {
+        return xS;
+    }
+
+    /**
+     * @param xS the xS to set
+     */
+    public void setXS(int xS) {
+        this.xS = xS;
+    }
+
+    /**
+     * @return int return the yS
+     */
+    public int getYS() {
+        return yS;
+    }
+
+    /**
+     * @param yS the yS to set
+     */
+    public void setYS(int yS) {
+        this.yS = yS;
+    }
+
+    /**
+     * @param s the s to set
+     */
+    public void setS(String s) {
+        this.s = s;
+    }
+
+    /**
+     * @param i the i to set
+     */
+    public void setI(String i) {
+        this.i = i;
+    }
+
+    /**
+     * @return int return the bbCount
+     */
+    public int getBbCount() {
+        return bbCount;
+    }
+
+    /**
+     * @param bbCount the bbCount to set
+     */
+    public void setBbCount(int bbCount) {
+        this.bbCount = bbCount;
+    }
+
+    /**
+     * @return int return the loadcount
+     */
+    public int getLoadcount() {
+        return loadcount;
+    }
+
+    /**
+     * @param loadcount the loadcount to set
+     */
+    public void setLoadcount(int loadcount) {
+        this.loadcount = loadcount;
+    }
+
+    /**
+     * @return int return the storecount
+     */
+    public int getStorecount() {
+        return storecount;
+    }
+
+    /**
+     * @param storecount the storecount to set
+     */
+    public void setStorecount(int storecount) {
+        this.storecount = storecount;
+    }
+
+    /**
+     * @return int return the fieldloadcount
+     */
+    public int getFieldloadcount() {
+        return fieldloadcount;
+    }
+
+    /**
+     * @param fieldloadcount the fieldloadcount to set
+     */
+    public void setFieldloadcount(int fieldloadcount) {
+        this.fieldloadcount = fieldloadcount;
+    }
+
+    /**
+     * @return int return the fieldstorecount
+     */
+    public int getFieldstorecount() {
+        return fieldstorecount;
+    }
+
+    /**
+     * @param fieldstorecount the fieldstorecount to set
+     */
+    public void setFieldstorecount(int fieldstorecount) {
+        this.fieldstorecount = fieldstorecount;
+    }
 
 }
