@@ -123,7 +123,7 @@ public class WebServer {
 
 			rms.metricsStorage.put(Thread.currentThread().getId(), metrics);
 
-			rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
+			//rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 			SolverArgumentParser ap = null;
 			
@@ -167,9 +167,7 @@ public class WebServer {
 
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			m.printInfo();
-
 			m.outputToFile();
-
 
 
 			// Send response to browser.

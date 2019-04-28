@@ -106,7 +106,7 @@ public class RequestMetrics {
 
 	public void outputToFile(){
 		try{
-			String fileName = "/tmp/stats__" + Thread.currentThread().getId() + "__" + sdf.format(this.timestamp) + ".txt";
+			String fileName = "/tmp/" + sdf.format(this.timestamp) + "stats__" + Thread.currentThread().getId() + ".txt";
 			File file = new File(fileName);
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			writer.write(this.toString());
