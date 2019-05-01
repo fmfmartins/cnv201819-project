@@ -186,9 +186,6 @@ public class WebServer {
 			m.printInfo();
 			m.outputToFile();
 
-			// Upload to amazon DynamoDB
-			AmazonDynamoDBUploader.uploadItem(m);
-
 			// Send response to browser.
 			final Headers hdrs = t.getResponseHeaders();
 
@@ -207,6 +204,16 @@ public class WebServer {
 			os.close();
 
 			System.out.println("> Sent response to " + t.getRemoteAddress().toString());
+
+			// Upload to amazon DynamoDB
+			try{
+				AmazonDynamoDBUploader.uploadItem(m);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+			
+			System.out.println("> Metric upload success ");
+
 		}
 	}
 }

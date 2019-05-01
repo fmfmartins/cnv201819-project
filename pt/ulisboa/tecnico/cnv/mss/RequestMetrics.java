@@ -33,15 +33,13 @@ public class RequestMetrics {
 	private int bbCount;
 	private int loadcount;
 	private int storecount;
-	private int fieldloadcount;
-	private int fieldstorecount;
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
 
 	public RequestMetrics(long threadID){
 		this.threadID = threadID;
-		this.sequenceID = counter.incrementAndGet() /*+ AmazonDynamoDBUploader.getLatestCounter()*/;
+		this.sequenceID = counter.incrementAndGet();
 		this.timestamp = new Timestamp(System.currentTimeMillis());
 	}
 
@@ -341,34 +339,6 @@ public class RequestMetrics {
      */
     public void setStorecount(int storecount) {
         this.storecount = storecount;
-    }
-
-    /**
-     * @return int return the fieldloadcount
-     */
-    public int getFieldloadcount() {
-        return fieldloadcount;
-    }
-
-    /**
-     * @param fieldloadcount the fieldloadcount to set
-     */
-    public void setFieldloadcount(int fieldloadcount) {
-        this.fieldloadcount = fieldloadcount;
-    }
-
-    /**
-     * @return int return the fieldstorecount
-     */
-    public int getFieldstorecount() {
-        return fieldstorecount;
-    }
-
-    /**
-     * @param fieldstorecount the fieldstorecount to set
-     */
-    public void setFieldstorecount(int fieldstorecount) {
-        this.fieldstorecount = fieldstorecount;
     }
 
 }

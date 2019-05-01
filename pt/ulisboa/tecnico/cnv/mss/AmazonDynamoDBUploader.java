@@ -43,6 +43,7 @@ import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import com.amazonaws.services.dynamodbv2.model.QueryResult;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
+import com.amazonaws.util.EC2MetadataUtils;
 
 import pt.ulisboa.tecnico.cnv.mss.*;
 
@@ -111,7 +112,7 @@ public class AmazonDynamoDBUploader {
             // Create a table with a primary hash key named 'request_id', which holds a string
             CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBUploader.TABLENAME)
                 .withKeySchema(new KeySchemaElement().withAttributeName("request_id").withKeyType(KeyType.HASH))
-                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("request_id").withAttributeType(ScalarAttributeType.N))
+                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("request_id").withAttributeType(ScalarAttributeType.S))
                 .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
 
             // Create table if it does not exist yet
@@ -161,7 +162,7 @@ public class AmazonDynamoDBUploader {
     public static Map<String, AttributeValue> uploadItem(RequestMetrics metrics) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
 
-        item.put("request_id", new AttributeValue().withN(Integer.toString(metrics.getSequenceID())));
+        item.put("request_id", new AttributeValue().withS(EC2MetadataUtils.getInstanceId() + "_" + Integer.toString(metrics.getSequenceID())));
         item.put("width", new AttributeValue().withN(Integer.toString(metrics.getW())));
         item.put("height", new AttributeValue().withN(Integer.toString(metrics.getH())));
         item.put("upper_left_x", new AttributeValue().withN(Integer.toString(metrics.getX0())));
@@ -180,16 +181,6 @@ public class AmazonDynamoDBUploader {
         System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);
 
         return item;
-    }
-
-    public static int getLatestCounter(){
-        QueryRequest queryRequest = new QueryRequest(AmazonDynamoDBUploader.TABLENAME)
-                                        .withLimit(1)
-                                        .withScanIndexForward(false);
-
-        QueryResult queryResult = dynamoDB.query(queryRequest);
-        System.out.println("Query Result: " + queryResult);
-        return 69;
     }
 
 }
