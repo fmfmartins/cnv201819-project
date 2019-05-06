@@ -125,13 +125,6 @@ public class AmazonDynamoDBUploader {
             TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
             System.out.println("Table Description: " + tableDescription);
 
-            // Add an item
-            /*RequestMetrics metrics;
-            Map<String, AttributeValue> item = newItem(123, 1, "LOW", "BFS", 69);
-            PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
-            PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-            System.out.println("Result: " + putItemResult);*/
-
             /*Scan items for movies with a year attribute greater than 1985
             HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
             Condition condition = new Condition()
