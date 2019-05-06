@@ -29,7 +29,7 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import javax.imageio.ImageIO;
 
 
-public class LoadBalancer{
+public class LoadBalancer {
 
 	static AmazonElasticLoadBalancing lb;	
 
