@@ -30,12 +30,8 @@ import javax.imageio.ImageIO;
 
 
 public class LoadBalancer{
-
-	static AmazonElasticLoadBalancing lb;	
-
+	
 	public static void main(final String[] args) throws Exception{
-		
-		//final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(8000),0);
 		
 		//Creation of the Load Balancer 
 		init();
@@ -44,35 +40,44 @@ public class LoadBalancer{
 	
 	public static void init() throws Exception{
 
-		//Getting the credentials (inside .aws folder)
-		AWSCredentials credentials = null;
-                try {
-                credentials = new ProfileCredentialsProvider().getCredentials();
-                } catch (Exception e) {
-                        throw new AmazonClientException(
-                        "Cannot load the credentials from the credential profiles file. " +
-                        "Please make sure that your credentials file is at the correct " +
-                        "location (~/.aws/credentials), and is in valid format.",
-                        e);
+                final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(8000),0);
+		
+		load_balancer.createContext("/climb", new MyHandler());
+
+                //server.createContext("/test", new MyTestHandler());
+
+                // be aware! infinite pool of threads!
+                load_balancer.setExecutor(Executors.newCachedThreadPool());
+                load_balancer.start();
+                
+                System.out.println(load_balancer.getAddress().toString());
+		
+	}
+	
+
+	static class MyHandler implements HttpHandler {
+                @Override
+                public void handle(final HttpExchange t) throws IOException {
+                        // Get the query.
+			final String query = t.getRequestURI().getQuery();
+
+			System.out.println("> Query:\t" + query);
+
+			System.out.println("> Thread id:\t" + Thread.currentThread().getId());
+
+			// Break it down into String[].
+                        final String[] params = query.split("&");
+                        
+                        //Get all the parameters
+                        System.out.println(params);
+                        
+                        //Try to estimate the wheight of the query, by its params
+
+                        //Get a way of knowing the instances online
+			
+
                 }
-		
 
-                lb = AmazonElasticLoadBalancingClientBuilder.standard().withRegion("eu-west-3").withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
-		
-		//Creation of LoadBalancer
-                CreateLoadBalancerRequest req = new CreateLoadBalancerRequest();
-		//Set name
-                req.setName("CNV-PROJECT");
-		//Set subnets (two from different zones)
-                Collection<String> collection = new ArrayList<String>();
-                collection.add("subnet-396e2550"); //eu-west-3a
-                collection.add("subnet-fa9126b7"); //eu-west-3c
-                req.setSubnets(collection);
-		
-                CreateLoadBalancerResult result = lb.createLoadBalancer(req);
-		
-	}	
-
+	}
 }
-
 	
