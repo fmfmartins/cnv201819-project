@@ -28,11 +28,12 @@ public class RequestMetrics {
 	private int xS;
 	private int yS;
 	private String s;
-	private String i;
+    private String i;
+    private int weight;
 	
-	private int bbCount;
-	private int loadcount;
-	private int storecount;
+	private long bbCount;
+	private long loadcount;
+	private long storecount;
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
@@ -41,7 +42,15 @@ public class RequestMetrics {
 		this.threadID = threadID;
 		this.sequenceID = counter.incrementAndGet();
 		this.timestamp = new Timestamp(System.currentTimeMillis());
-	}
+    }
+    
+    public void setWeight(int weight){
+        this.weight = weight;
+    }
+
+    public int getWeight(){
+        return this.weight;
+    }
 
 	public String getAlgorithm(){
 		return this.s;
@@ -300,44 +309,44 @@ public class RequestMetrics {
     }
 
     /**
-     * @return int return the bbCount
+     * @return long return the bbCount
      */
-    public int getBbCount() {
+    public long getBbCount() {
         return bbCount;
     }
 
     /**
      * @param bbCount the bbCount to set
      */
-    public void setBbCount(int bbCount) {
+    public void setBbCount(long bbCount) {
         this.bbCount = bbCount;
     }
 
     /**
-     * @return int return the loadcount
+     * @return long return the loadcount
      */
-    public int getLoadcount() {
+    public long getLoadcount() {
         return loadcount;
     }
 
     /**
      * @param loadcount the loadcount to set
      */
-    public void setLoadcount(int loadcount) {
+    public void setLoadcount(long loadcount) {
         this.loadcount = loadcount;
     }
 
     /**
-     * @return int return the storecount
+     * @return long return the storecount
      */
-    public int getStorecount() {
+    public long getStorecount() {
         return storecount;
     }
 
     /**
      * @param storecount the storecount to set
      */
-    public void setStorecount(int storecount) {
+    public void setStorecount(long storecount) {
         this.storecount = storecount;
     }
 

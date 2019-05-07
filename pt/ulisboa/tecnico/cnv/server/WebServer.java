@@ -26,6 +26,9 @@ import pt.ulisboa.tecnico.cnv.mss.*;
 import javax.imageio.ImageIO;
 
 public class WebServer {
+
+	final String METRIC_SERVER_URL = "cnv-mss.fmfmartins.xyz:8000/";
+
 	public static void main(final String[] args) throws Exception {
 
 		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
@@ -205,14 +208,30 @@ public class WebServer {
 
 			System.out.println("> Sent response to " + t.getRemoteAddress().toString());
 
+
+			/*URIBuilder builder = new URIBuilder();
+			builder.setScheme("http").setHost("www.google.com").setPath("/search")
+				.setParameter("q", "httpclient")
+				.setParameter("btnG", "Google Search")
+				.setParameter("aq", "f")
+				.setParameter("oq", "");
+			URI uri = builder.build();
+			HttpGet httpget = new HttpGet(uri);
+			System.out.println(httpget.getURI());*/
+
 			// Upload to amazon DynamoDB
 			try{
+				int mWeight = MetricsCalculator.computeWeight(m);
+				//System.out.println("> mWeight : " + mWeight);
+				m.setWeight(mWeight);
 				AmazonDynamoDBUploader.uploadItem(m);
+				System.out.println("> Metric upload success ");
 			} catch (Exception e){
+				System.out.println("> Metric upload failure ");
 				e.printStackTrace();
 			}
 			
-			System.out.println("> Metric upload success ");
+
 
 		}
 	}

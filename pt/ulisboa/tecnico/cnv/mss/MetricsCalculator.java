@@ -8,10 +8,16 @@ public class MetricsCalculator{
 
     public static int computeWeight(RequestMetrics metrics){
 
-        int weight = (metrics.getBbCount()*0.5 + metrics.getLoadcount()*0.25 + metrics.getStorecount()*0.25) / Integer.MAX_VALUE;
-        return weight;
+        // fastest request order of magnitude
+        long tempmax = Long.parseLong("1000000");
+
+        double weight = (metrics.getBbCount()*0.7 + metrics.getLoadcount()*0.1 + metrics.getStorecount()*0.2) / tempmax;
+        return (int) weight;
+
     }
 
-    
+
+
+
 
 }
