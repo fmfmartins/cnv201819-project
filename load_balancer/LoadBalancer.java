@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.lang.Thread.*;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -19,6 +22,7 @@ import pt.ulisboa.tecnico.cnv.solver.SolverArgumentParser;
 import pt.ulisboa.tecnico.cnv.solver.SolverFactory;
 import pt.ulisboa.tecnico.cnv.mss.*;
 
+import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.elasticloadbalancingv2.*;
 import com.amazonaws.services.elasticloadbalancingv2.model.*;
@@ -30,6 +34,9 @@ import javax.imageio.ImageIO;
 
 
 public class LoadBalancer{
+
+        //Hashset to save the future instances
+        Set<Instance> instances = new HashSet<Instance>();
 	
 	public static void main(final String[] args) throws Exception{
 		
