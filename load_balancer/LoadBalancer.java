@@ -31,6 +31,8 @@ import pt.ulisboa.tecnico.cnv.solver.SolverArgumentParser;
 import pt.ulisboa.tecnico.cnv.solver.SolverFactory;
 import pt.ulisboa.tecnico.cnv.mss.*;
 
+
+import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.elasticloadbalancingv2.*;
@@ -46,6 +48,8 @@ public class LoadBalancer{
 
         //Hashset to save the future instances
         Set<Instance> instances = new HashSet<Instance>();
+	
+	//List<Reservation> reservations = new ArrayList<Reservation>();
 	
 	public static void main(final String[] args) throws Exception{
 		
@@ -69,6 +73,24 @@ public class LoadBalancer{
                 System.out.println(load_balancer.getAddress().toString());
 		
 	}
+
+	/*public void AddInstance(Instance instance){
+	
+		instances.add(instance);
+
+	}
+
+	public String getInstancePublicDnsName(String instanceId){
+	
+		for (Reservation reservation : reservations) {
+      			for (Instance instance : reservation.getInstances()) {
+        			if (instance.getInstanceId().equals(instanceId)){
+          				return instance.getPublicDnsName();
+      				}
+    		}
+    		return null;
+	
+	}*/
 	        
         static class MyTestHandler implements HttpHandler {
                 @Override
