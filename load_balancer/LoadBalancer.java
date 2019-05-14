@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 import com.sun.jndi.toolkit.url.UrlUtil;
 import com.sun.net.httpserver.Headers;
@@ -103,31 +106,47 @@ public class LoadBalancer{
 			
                 	System.out.println("> Headers:\t" + query);
                 	System.out.println("> Query:\t" + query);
+			System.out.println("> Request:\t" + t.getRequestURI().toString());
 			
 			//DNS name
-                	String DNSName="ec2-35-180-190-107.eu-west-3.compute.amazonaws.com:8000";		
+                	String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";		
                 	URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
                 	HttpURLConnection con = (HttpURLConnection) url.openConnection();
                
                 	// Send request
                 	con.setRequestMethod("GET");
 
+
 			//Get respons
                       
-                	/*int responseCode = con.getResponseCode();
-			
-			
-			BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-    			String inputLine;
-    			StringBuffer response = new StringBuffer();
+                	int responseCode = con.getResponseCode();
+						
+			InputStream response = con.getInputStream();
+    			
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-    			while ((inputLine = in.readLine()) != null) {
-        			response.append(inputLine);
-    			}
-    			in.close();
+			byte[] buffer = new byte[1024];
+			int len;
 
-			String result=response.toString();
-    			System.out.println(result);*/
+		 	//read bytes from the input stream and store them in buffer
+		 	while ((len = response.read(buffer)) != -1) {
+		 		// write bytes from the buffer into output stream
+				bos.write(buffer, 0, len);
+		 	}
+		
+		
+			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
+
+			headers.add("Content-Type","image/png");
+
+                        headers.add("Access-Control-Allow-Origin", "*");
+                        headers.add("Access-Control-Allow-Credentials", "true");
+                        headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
+                        headers.add("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+
+                        OutputStream os = t.getResponseBody();
+                        os.write(bos.toByteArray());
+                        os.close();
 
 			System.out.println("-------------------------------\t");
                 }
