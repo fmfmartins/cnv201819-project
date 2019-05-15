@@ -51,6 +51,9 @@ public class LoadBalancer{
 	
 	//List<Reservation> reservations = new ArrayList<Reservation>();
 	
+	//Hashmap that stores the requests that instances are doing
+	Map<String,Map<String,int>> requestsOnInstances = new Map<String,Map<String,int>>
+
 	public static void main(final String[] args) throws Exception{
 		
 		//Creation of the Load Balancer 
@@ -91,6 +94,29 @@ public class LoadBalancer{
     		return null;
 	
 	}*/
+
+	/*public void AddRequestToInstance(String instanceId,String requestWeight){
+
+		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
+		
+		int value = requests.get(requestWeight)+1;
+		
+		requests.put(requestWeight,value);
+	
+	}
+
+	public void RemoveRequestFromInstance(String intanceId, String requestWeight){
+
+		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
+
+                int value = requests.get(requestWeight)-1;
+
+                requests.put(requestWeight,value);
+
+	}*/
+
+
+	
 	        
         static class MyTestHandler implements HttpHandler {
                 @Override
@@ -169,6 +195,8 @@ public class LoadBalancer{
                         OutputStream os = t.getResponseBody();
                         os.write(bos.toByteArray());
                         os.close();
+
+			System.out.println("> Response \t:" +  String.valueOf(responseCode));			
 
 			System.out.println("-------------------------------\t");
                 }
