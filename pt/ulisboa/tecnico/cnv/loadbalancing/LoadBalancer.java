@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
-import com.sun.jndi.toolkit.url.UrlUtil;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -48,24 +47,50 @@ import javax.imageio.ImageIO;
 
 public class LoadBalancer{
 
-        //Hashset to save the future instances
-        Set<Instance> instances = new HashSet<Instance>();
+	// LoadBalancer instance
+	private static final LoadBalancer loadBalancer = new LoadBalancer();	
 	
-	//List<Reservation> reservations = new ArrayList<Reservation>();
+	// Port	
+	private static final int port = 8000;
+
+        //Hashset to save the future instances
+        private ArrayList<String> instancesRunning = new ArrayList<String>();
 	
 	//Hashmap that stores the requests that instances are doing
 	//Map<String,Map<String,int>> requestsOnInstances = new Map<String,Map<String,int>>();
 
-	public static void main(final String[] args) throws Exception{
-		
-		//Creation of the Load Balancer 
-		init();
+	//Test main class
+	public static void main(String[] args){
+    		LoadBalancer loadBalancer = LoadBalancer.getInstance();
+	}
+
+
+	//Get instance of LoadBalancer
+	public static LoadBalancer getInstance() {
+		return loadBalancer;
+	}
+
+	//Contruct
+	private LoadBalancer(){
+		try {
+			//Creation of the Load Balancer 
+			init();
+		}
+		catch(Exception e){
+			System.out.println("Exception on init:"+e.getMessage());
+		}
         
 	}
-	
-	public static void init() throws Exception{
 
-                final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(8000),0);
+	public static int getPort(){
+		return port;
+	}
+	
+	public void init() throws Exception{
+
+		int port = LoadBalancer.getInstance().getPort();		
+
+                final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
 		
                 load_balancer.createContext("/climb", new SendQueryHandler());
 
@@ -79,13 +104,30 @@ public class LoadBalancer{
 		
 	}
 
-	/*public void AddInstance(Instance instance){
+	//New instance running
+	public void AddInstance(String dnsName){
+ 		synchronized(instancesRunning){
+			instancesRunning.add(dnsName);
+		}
 	
-		instances.add(instance);
-
 	}
 
-	public String getInstancePublicDnsName(String instanceId){
+	//Instance off
+	public void RemoveInstance(String dnsName){
+		synchronized(instancesRunning){
+			instancesRunning.remove(dnsName);
+		}
+	}
+
+	/*
+	//Choose instance to redirect the request
+	public static String ChoosesInstance(){
+		
+		
+			
+	}
+
+	public static String getInstancePublicDnsName(String instanceId){
 	
 		for (Reservation reservation : reservations) {
       			for (Instance instance : reservation.getInstances()) {
@@ -97,7 +139,7 @@ public class LoadBalancer{
 	
 	}*/
 
-	/*public void AddRequestToInstance(String instanceId,String requestWeight){
+	/*public static void AddRequestToInstance(String instanceId,String requestWeight){
 
 		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
 		
@@ -107,7 +149,7 @@ public class LoadBalancer{
 	
 	}
 
-	public void RemoveRequestFromInstance(String intanceId, String requestWeight){
+	public static void RemoveRequestFromInstance(String intanceId, String requestWeight){
 
 		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
 
@@ -119,7 +161,7 @@ public class LoadBalancer{
 
 
 	
-	        
+	//Handler Test        
         static class MyTestHandler implements HttpHandler {
                 @Override
 		public void handle(final HttpExchange t) throws IOException {
@@ -145,6 +187,8 @@ public class LoadBalancer{
 		}
 
 	}
+
+	// Handler that deal with the requests
 	static class SendQueryHandler implements HttpHandler{
 		@Override
 		public void handle(final HttpExchange t) throws IOException{
@@ -158,17 +202,22 @@ public class LoadBalancer{
                 	System.out.println("> Query:\t" + query);
 			System.out.println("> Request:\t" + t.getRequestURI().toString());
 			
+			
+			//Create a params object
+			String[] listParams = query.split("&");
+			Params params = new Params(listParams);	
+			
+			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
+			//String DNSName = loadBalancer.chooseInstance()
+
 			//DNS name
-                	String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";		
-                	URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
-                	HttpURLConnection con = (HttpURLConnection) url.openConnection();
-               
-                	// Send request
-                	con.setRequestMethod("GET");
+			String DNSName="ec2-35-180-192-225.eu-west-3.compute.amazonaws.com:8000";
+			URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");		
 
 
 			//Get respons
-                      
                 	int responseCode = con.getResponseCode();
 						
 			InputStream response = con.getInputStream();
@@ -203,6 +252,6 @@ public class LoadBalancer{
 			System.out.println("-------------------------------\t");
                 }
 	} 
-
+			
 }
 	
