@@ -192,7 +192,7 @@ public class WebServer {
 
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			System.out.println(m);
-			m.outputToFile();
+			//m.outputToFile();
 
 			// Send response to browser.
 			final Headers hdrs = t.getResponseHeaders();
