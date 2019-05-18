@@ -79,7 +79,9 @@ public class RequestMetrics {
 	public String getImage(){
 		return this.i;
     }
-    
+
+
+    @DynamoDBAttribute(attributeName="sequenceID")
 	public int getSequenceID(){
 		return this.sequenceID;
 	}
@@ -111,12 +113,14 @@ public class RequestMetrics {
 
 	public void incrBBCount(int incr){
 		this.bbCount += incr;
-	}
-
+    }
+    
+    @DynamoDBAttribute(attributeName="count")
 	public static int getCount(){
 		return counter.get();
 	}
 
+    @DynamoDBAttribute(attributeName="threadID")
 	public long getThreadID(){
 		return this.threadID;
 	}
@@ -195,6 +199,7 @@ public class RequestMetrics {
     /**
      * @return Timestamp return the timestamp
      */
+    @DynamoDBAttribute(attributeName="timestamp")
     public Timestamp getTimestamp() {
         return timestamp;
     }
