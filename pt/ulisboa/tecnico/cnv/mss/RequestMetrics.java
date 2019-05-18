@@ -9,7 +9,13 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import com.amazonaws.util.EC2MetadataUtils;
 
+@DynamoDBTable(tableName="statistics")
 public class RequestMetrics {
 
 
@@ -17,7 +23,8 @@ public class RequestMetrics {
 
 	private int sequenceID;
 	private long threadID;
-	private Timestamp timestamp;
+    private Timestamp timestamp;
+    private String requestID;
 
 	private int w;
 	private int h;
@@ -38,29 +45,41 @@ public class RequestMetrics {
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
-
-	public RequestMetrics(long threadID){
+	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
 		this.sequenceID = counter.incrementAndGet();
-		this.timestamp = new Timestamp(System.currentTimeMillis());
+        this.timestamp = new Timestamp(System.currentTimeMillis());
+        this.requestID = instanceID + "_" + Integer.toString(this.sequenceID);
+    }
+
+    @DynamoDBHashKey(attributeName="request_id")
+    public String getRequestID(){
+        return this.requestID;
+    }
+
+    public void setRequestID(String requestID){
+        this.requestID = requestID;
     }
     
     public void setWeight(long weight){
         this.weight = weight;
     }
 
+    @DynamoDBAttribute(attributeName="e_weight")
     public long getWeight(){
         return this.weight;
     }
 
+    @DynamoDBAttribute(attributeName="solver_algorithm")
 	public String getAlgorithm(){
 		return this.s;
 	}
 
+    @DynamoDBAttribute(attributeName="image_name")
 	public String getImage(){
 		return this.i;
-	}
-
+    }
+    
 	public int getSequenceID(){
 		return this.sequenceID;
 	}
@@ -134,8 +153,10 @@ public class RequestMetrics {
 
 	@Override
 	public String toString(){
-		String s;
-		s = "\t//Request Parameters//\t\n";
+        String s;
+        s =  String.format("\t//////////////////////\t\n");
+        s += String.format("\t//Request Parameters//\t\n");
+        s += String.format("\t//////////////////////\t\n");
 		s += String.format("Width: %d\n" , this.w);
 		s += String.format("Height: %d\n", this.h);
 		s += String.format("Upper-Left Corner X: %d\n", this.x0);
@@ -145,8 +166,10 @@ public class RequestMetrics {
 		s += String.format("Starting Point X: %d\n" , this.xS);
 		s += String.format("Starting Point Y: %d\n" , this.yS);
 		s += String.format("Solver Algorithm: %s\n" , this.s);
-		s += String.format("Image Path: %s\n" , this.i);
-		s += String.format("\t//Metrics//\t\n");
+        s += String.format("Image Path: %s\n" , this.i);
+        s += String.format("\t///////////\t\n");
+        s += String.format("\t//Metrics//\t\n");
+        s += String.format("\t///////////\t\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
 		s += String.format("Load Instructions: %d\n" , this.loadcount);
 		s += String.format("Store Instructions: %d\n" , this.storecount);
@@ -186,6 +209,7 @@ public class RequestMetrics {
     /**
      * @return int return the w
      */
+    @DynamoDBAttribute(attributeName="width")
     public int getW() {
         return w;
     }
@@ -200,6 +224,7 @@ public class RequestMetrics {
     /**
      * @return int return the h
      */
+    @DynamoDBAttribute(attributeName="height")
     public int getH() {
         return h;
     }
@@ -214,6 +239,7 @@ public class RequestMetrics {
     /**
      * @return int return the x0
      */
+    @DynamoDBAttribute(attributeName="upper_left_x")
     public int getX0() {
         return x0;
     }
@@ -228,6 +254,7 @@ public class RequestMetrics {
     /**
      * @return int return the x1
      */
+    @DynamoDBAttribute(attributeName="lower_right_x")
     public int getX1() {
         return x1;
     }
@@ -242,6 +269,7 @@ public class RequestMetrics {
     /**
      * @return int return the y0
      */
+    @DynamoDBAttribute(attributeName="upper_left_y")
     public int getY0() {
         return y0;
     }
@@ -256,6 +284,7 @@ public class RequestMetrics {
     /**
      * @return int return the y1
      */
+    @DynamoDBAttribute(attributeName="lower_right_y")
     public int getY1() {
         return y1;
     }
@@ -270,6 +299,7 @@ public class RequestMetrics {
     /**
      * @return int return the xS
      */
+    @DynamoDBAttribute(attributeName="start_x")
     public int getXS() {
         return xS;
     }
@@ -284,6 +314,7 @@ public class RequestMetrics {
     /**
      * @return int return the yS
      */
+    @DynamoDBAttribute(attributeName="start_y")
     public int getYS() {
         return yS;
     }
@@ -312,6 +343,7 @@ public class RequestMetrics {
     /**
      * @return long return the bbCount
      */
+    @DynamoDBAttribute(attributeName="basic_blocks")
     public long getBbCount() {
         return bbCount;
     }
@@ -326,6 +358,7 @@ public class RequestMetrics {
     /**
      * @return long return the loadcount
      */
+    @DynamoDBAttribute(attributeName="load_instructions")
     public long getLoadcount() {
         return loadcount;
     }
@@ -340,6 +373,7 @@ public class RequestMetrics {
     /**
      * @return long return the storecount
      */
+    @DynamoDBAttribute(attributeName="store_instructions")
     public long getStorecount() {
         return storecount;
     }

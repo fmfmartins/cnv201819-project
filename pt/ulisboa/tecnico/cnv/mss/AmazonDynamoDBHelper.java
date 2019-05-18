@@ -44,6 +44,7 @@ import com.amazonaws.services.dynamodbv2.model.QueryResult;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.amazonaws.util.EC2MetadataUtils;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 
 import pt.ulisboa.tecnico.cnv.mss.*;
 
@@ -51,7 +52,7 @@ import pt.ulisboa.tecnico.cnv.mss.*;
  * This sample demonstrates how to perform a few simple operations with the
  * Amazon DynamoDB service.
  */
-public class AmazonDynamoDBUploader {
+public class AmazonDynamoDBHelper {
 
     private RequestMetricsStorage rms = RequestMetricsStorage.getInstance();
     private static String TABLENAME = "statistics";
@@ -70,6 +71,8 @@ public class AmazonDynamoDBUploader {
      */
 
     static AmazonDynamoDB dynamoDB;
+
+    public static DynamoDBMapper mapper;
 
     /**
      * The only information needed to create a client are security credentials
@@ -102,6 +105,8 @@ public class AmazonDynamoDBUploader {
             .withCredentials(credentialsProvider)
             .withRegion("eu-west-3")
             .build();
+
+        mapper = new DynamoDBMapper(dynamoDB);
     }
 
     public static void createTable() throws Exception {
@@ -110,7 +115,7 @@ public class AmazonDynamoDBUploader {
         try {
 
             // Create a table with a primary hash key named 'request_id', which holds a string
-            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBUploader.TABLENAME)
+            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME)
                 .withKeySchema(new KeySchemaElement().withAttributeName("request_id").withKeyType(KeyType.HASH))
                 .withAttributeDefinitions(new AttributeDefinition().withAttributeName("request_id").withAttributeType(ScalarAttributeType.S))
                 .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
@@ -118,10 +123,10 @@ public class AmazonDynamoDBUploader {
             // Create table if it does not exist yet
             TableUtils.createTableIfNotExists(dynamoDB, createTableRequest);
             // wait for the table to move into ACTIVE state
-            TableUtils.waitUntilActive(dynamoDB, AmazonDynamoDBUploader.TABLENAME);
+            TableUtils.waitUntilActive(dynamoDB, AmazonDynamoDBHelper.TABLENAME);
 
             // Describe our new table
-            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(AmazonDynamoDBUploader.TABLENAME);
+            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME);
             TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
             System.out.println("Table Description: " + tableDescription);
 
@@ -152,10 +157,9 @@ public class AmazonDynamoDBUploader {
     }
 
 
-    public static Map<String, AttributeValue> uploadItem(RequestMetrics metrics) {
+    public static void uploadItem(RequestMetrics metrics) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
-
-        item.put("request_id", new AttributeValue().withS(EC2MetadataUtils.getInstanceId() + "_" + Integer.toString(metrics.getSequenceID())));
+        /*item.put("request_id", new AttributeValue().withS(metrics.getRequestID())));
         item.put("width", new AttributeValue().withN(Integer.toString(metrics.getW())));
         item.put("height", new AttributeValue().withN(Integer.toString(metrics.getH())));
         item.put("upper_left_x", new AttributeValue().withN(Integer.toString(metrics.getX0())));
@@ -170,11 +174,9 @@ public class AmazonDynamoDBUploader {
         item.put("load_instructions", new AttributeValue().withN(Long.toString(metrics.getLoadcount())));
         item.put("store_instructions", new AttributeValue().withN(Long.toString(metrics.getStorecount())));
         item.put("e_weight", new AttributeValue().withN(Long.toString(metrics.getWeight())));
-        PutItemRequest putItemRequest = new PutItemRequest(AmazonDynamoDBUploader.TABLENAME, item);
+        PutItemRequest putItemRequest = new PutItemRequest(AmazonDynamoDBHelper.TABLENAME, item);
         PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-        System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);
-
-        return item;
+        System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);*/
+        mapper.save(metrics);
     }
-
 }
