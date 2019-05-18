@@ -191,7 +191,7 @@ public class WebServer {
 			//Output to file 
 
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
-			m.printInfo();
+			System.out.println(m);
 			m.outputToFile();
 
 			// Send response to browser.

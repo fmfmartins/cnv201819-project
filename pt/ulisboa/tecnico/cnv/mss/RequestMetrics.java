@@ -43,7 +43,12 @@ public class RequestMetrics {
 	private long loadcount;
 	private long storecount;
 
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+    
+    // Para a DynamoDB conseguir instanciar a classe tambem
+    public RequestMetrics(){
+
+    }
 
 	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
@@ -115,7 +120,6 @@ public class RequestMetrics {
 		this.bbCount += incr;
     }
     
-    @DynamoDBAttribute(attributeName="count")
 	public static int getCount(){
 		return counter.get();
 	}

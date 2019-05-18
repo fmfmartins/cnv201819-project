@@ -305,7 +305,6 @@ public class LoadBalancer {
 			DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
 				.withKeyConditionExpression("image_name = :image_name")
 				.withFilterExpression("solver_algorithm = :solver_algorithm"
-					+ " and image_name = :image_name"
 					+ " and upper_left_x between :min_upper_left_x and :max_upper_left_x"
 					+ " and upper_left_y between :min_upper_left_y and :max_upper_left_y"
 					+ " and lower_right_x between :min_lower_right_x and :max_lower_right_x"
