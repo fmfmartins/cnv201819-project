@@ -169,7 +169,7 @@ public class AmazonDynamoDBUploader {
         item.put("basic_blocks", new AttributeValue().withN(Long.toString(metrics.getBbCount())));
         item.put("load_instructions", new AttributeValue().withN(Long.toString(metrics.getLoadcount())));
         item.put("store_instructions", new AttributeValue().withN(Long.toString(metrics.getStorecount())));
-        item.put("e_weight", new AttributeValue().withN(Integer.toString(metrics.getWeight())));
+        item.put("e_weight", new AttributeValue().withN(Long.toString(metrics.getWeight())));
         PutItemRequest putItemRequest = new PutItemRequest(AmazonDynamoDBUploader.TABLENAME, item);
         PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
         System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);

@@ -29,7 +29,8 @@ public class RequestMetrics {
 	private int yS;
 	private String s;
     private String i;
-    private int weight;
+
+    private long weight;
 	
 	private long bbCount;
 	private long loadcount;
@@ -44,11 +45,11 @@ public class RequestMetrics {
 		this.timestamp = new Timestamp(System.currentTimeMillis());
     }
     
-    public void setWeight(int weight){
+    public void setWeight(long weight){
         this.weight = weight;
     }
 
-    public int getWeight(){
+    public long getWeight(){
         return this.weight;
     }
 

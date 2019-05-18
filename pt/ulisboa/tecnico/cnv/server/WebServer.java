@@ -27,8 +27,6 @@ import javax.imageio.ImageIO;
 
 public class WebServer {
 
-	final String METRIC_SERVER_URL = "cnv-mss.fmfmartins.xyz:8000/";
-
 	public static void main(final String[] args) throws Exception {
 
 		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
@@ -221,7 +219,7 @@ public class WebServer {
 
 			// Upload to amazon DynamoDB
 			try{
-				int mWeight = MetricsCalculator.computeWeight(m);
+				long mWeight = MetricsCalculator.computeWeight(m);
 				//System.out.println("> mWeight : " + mWeight);
 				m.setWeight(mWeight);
 				AmazonDynamoDBUploader.uploadItem(m);
@@ -230,9 +228,6 @@ public class WebServer {
 				System.out.println("> Metric upload failure ");
 				e.printStackTrace();
 			}
-			
-
-
 		}
 	}
 }
