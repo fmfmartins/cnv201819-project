@@ -123,7 +123,7 @@ public class RequestMetrics {
 	}
 
 	public void printInfo(){
-		System.out.println("\t//Request Parameters//\t");
+		System.out.println("//Request Parameters//");
 		System.out.println("Width: " + this.w);
 		System.out.println("Height: " + this.h);
 		System.out.println("Upper-Left Corner X: " + this.x0);
@@ -134,7 +134,7 @@ public class RequestMetrics {
 		System.out.println("Starting Point Y: " + this.yS);
 		System.out.println("Solver Algorithm: " + this.s);
 		System.out.println("Image Path: " + this.i);
-		System.out.println("\t//Metrics//\t");
+		System.out.println("//Metrics//");
 		System.out.println("Number of basic blocks: " + this.bbCount);
 		System.out.println("Load Instructions: " + this.loadcount);
 		System.out.println("Store Instructions: " + this.storecount);
@@ -155,9 +155,9 @@ public class RequestMetrics {
 	@Override
 	public String toString(){
         String s;
-        s =  String.format("\t//////////////////////\t\n");
-        s += String.format("\t//Request Parameters//\t\n");
-        s += String.format("\t//////////////////////\t\n");
+        s =  String.format("//////////////////////\n");
+        s += String.format("//Request Parameters//\n");
+        s += String.format("//////////////////////\n");
 		s += String.format("Width: %d\n" , this.w);
 		s += String.format("Height: %d\n", this.h);
 		s += String.format("Upper-Left Corner X: %d\n", this.x0);
@@ -168,9 +168,9 @@ public class RequestMetrics {
 		s += String.format("Starting Point Y: %d\n" , this.yS);
 		s += String.format("Solver Algorithm: %s\n" , this.s);
         s += String.format("Image Path: %s\n" , this.i);
-        s += String.format("\t///////////\t\n");
-        s += String.format("\t//Metrics//\t\n");
-        s += String.format("\t///////////\t\n");
+        s += String.format("///////////\n");
+        s += String.format("//Metrics//\n");
+        s += String.format("///////////\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
 		s += String.format("Load Instructions: %d\n" , this.loadcount);
 		s += String.format("Store Instructions: %d\n" , this.storecount);

@@ -52,10 +52,13 @@ import javax.imageio.ImageIO;
 
 public class LoadBalancer {
 
-    private static int RANGE_PX_OFFSET = 50;
+    private static int RANGE_PX_OFFSET = 10;
 
 	// LoadBalancer instance
-	private static final LoadBalancer loadBalancer = new LoadBalancer();	
+	private static final LoadBalancer loadBalancer = new LoadBalancer();
+	// Cache where the key is the image name
+	private static Map<String, List<RequestMetrics>> cache = new HashMap<>();
+	
 	
 	// Port	
 	private static final int port = 8000;
@@ -68,9 +71,8 @@ public class LoadBalancer {
 
 	//Test main class
 	public static void main(String[] args){
-    		LoadBalancer loadBalancer = LoadBalancer.getInstance();
+    	LoadBalancer loadBalancer = LoadBalancer.getInstance();
 	}
-
 
 	//Get instance of LoadBalancer
 	public static LoadBalancer getInstance() {
@@ -126,9 +128,6 @@ public class LoadBalancer {
 	/*
 	//Choose instance to redirect the request
 	public static String ChoosesInstance(){
-		
-		
-			
 	}
 
 	public static String getInstancePublicDnsName(String instanceId){
@@ -163,9 +162,7 @@ public class LoadBalancer {
 
 	}*/
 
-
-	
-	        
+      
     static class MyTestHandler implements HttpHandler {
         @Override
 		public void handle(final HttpExchange t) throws IOException {
@@ -211,13 +208,14 @@ public class LoadBalancer {
 			String[] listParams = query.split("&");
 			Params params = new Params(listParams);	
 
-			getEstimatedCost(params);
+			params.setCost(getEstimatedCost(params));
+
+			System.out.println("EstimatedCost = " + params.getCost());
 			
 			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
 			//String DNSName = loadBalancer.chooseInstance()
 
 			//DNS name
-
             //String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
             String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";
 		
@@ -227,12 +225,9 @@ public class LoadBalancer {
             // Send request
             con.setRequestMethod("GET");
 
-
-			//Get response
-                      
+			//Get response        
             int responseCode = con.getResponseCode();
-
-						
+	
 			InputStream response = con.getInputStream();
     			
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -269,17 +264,16 @@ public class LoadBalancer {
 
     public static long getEstimatedCost(Params request){
 		System.out.println("getEstimatedCost");
-        
+
+		long eCost = -1;
         List<RequestMetrics> dbMetrics = null;
 		dbMetrics = getSimilarMetricsFromDB(request);
 		if(dbMetrics == null){
-			System.out.println("Hello" + dbMetrics.size());
+			System.out.println("Empty set-> size: " + dbMetrics.size());
 		} else {
-			for(RequestMetrics metric : dbMetrics){
-				System.out.println(metric);
-			}
+			eCost = computeAverageCost(dbMetrics);
 		}
-        return 69420;
+        return eCost;
     }
 
     private static List<RequestMetrics> getSimilarMetricsFromDB(Params request){
@@ -312,12 +306,10 @@ public class LoadBalancer {
 					+ " and start_x between :min_start_x and :max_start_x"
 					+ " and start_y between :min_start_y and :max_start_y")
 				.withExpressionAttributeValues(queryParams);
-			
 			queryResult = AmazonDynamoDBHelper.query(RequestMetrics.class, queryExpression);
 		} catch (Exception e){
 			e.printStackTrace();
 		}
-        
         return queryResult;
     }
 
@@ -329,7 +321,14 @@ public class LoadBalancer {
     static int computeUpperBound(int param){
         int result = param + RANGE_PX_OFFSET;
         return result;
-    }
-
+	}
+	
+	static long computeAverageCost(List<RequestMetrics> dbMetrics){
+		long totalWeight = 0;
+		for(RequestMetrics metric : dbMetrics){
+			totalWeight += metric.getWeight();
+		}
+		return (long) (totalWeight / dbMetrics.size());
+	}
 }
 	
