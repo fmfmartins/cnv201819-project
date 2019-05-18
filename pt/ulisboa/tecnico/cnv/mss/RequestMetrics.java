@@ -76,11 +76,19 @@ public class RequestMetrics {
     @DynamoDBAttribute(attributeName="solver_algorithm")
 	public String getAlgorithm(){
 		return this.s;
-	}
+    }
+    
+    public void setAlgorithm(String solver){
+        this.s = solver;
+    }
 
     @DynamoDBHashKey(attributeName="image_name")
 	public String getImage(){
 		return this.i;
+    }
+
+    public void setImage(String imageName){
+        this.i = imageName;
     }
 
 	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
@@ -193,8 +201,8 @@ public class RequestMetrics {
     /**
      * @param timestamp the timestamp to set
      */
-    public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp.toString();
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
     }
 
     /**

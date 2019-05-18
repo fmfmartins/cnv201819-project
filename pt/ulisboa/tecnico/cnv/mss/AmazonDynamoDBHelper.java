@@ -17,6 +17,7 @@ package pt.ulisboa.tecnico.cnv.mss;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -124,10 +125,20 @@ public class AmazonDynamoDBHelper {
 
         try {
 
+            ArrayList<KeySchemaElement> keySchema = new ArrayList<KeySchemaElement>();
+            keySchema.add(new KeySchemaElement().withAttributeName("image_name").withKeyType(KeyType.HASH));
+            keySchema.add(new KeySchemaElement().withAttributeName("timestamp").withKeyType(KeyType.RANGE));
+
+            ArrayList<AttributeDefinition> attributeDefinitions = new ArrayList<AttributeDefinition>();
+            attributeDefinitions
+                .add(new AttributeDefinition().withAttributeName("image_name").withAttributeType(ScalarAttributeType.S));
+            attributeDefinitions
+                .add(new AttributeDefinition().withAttributeName("timestamp").withAttributeType(ScalarAttributeType.S));
+
             // Create a table with a primary hash key named 'request_id', which holds a string
             CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME)
-                .withKeySchema(new KeySchemaElement().withAttributeName("image_name").withKeyType(KeyType.HASH))
-                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("image_name").withAttributeType(ScalarAttributeType.S))
+                .withKeySchema(keySchema)
+                .withAttributeDefinitions(attributeDefinitions)
                 .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
 
             // Create table if it does not exist yet
