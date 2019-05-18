@@ -53,7 +53,7 @@ public class RequestMetrics {
 	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
 		this.sequenceID = counter.incrementAndGet();
-        this.timestamp = new Timestamp(System.currentTimeMillis()).toString();
+        this.timestamp = new Timestamp(System.currentTimeMillis()).toString().replace(' ', '_');
         this.requestID = instanceID + "_" + Integer.toString(this.sequenceID);
     }
 
