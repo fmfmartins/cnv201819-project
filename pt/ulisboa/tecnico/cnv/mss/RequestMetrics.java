@@ -18,13 +18,9 @@ import com.amazonaws.util.EC2MetadataUtils;
 @DynamoDBTable(tableName="statistics")
 public class RequestMetrics {
 
-
-	private static final AtomicInteger counter = new AtomicInteger(0);
-
-	private int sequenceID;
 	private long threadID;
     private String timestamp;
-    private String requestID;
+    private String instanceID;
 
 	private int w;
 	private int h;
@@ -52,18 +48,20 @@ public class RequestMetrics {
 
 	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
-		this.sequenceID = counter.incrementAndGet();
-        this.timestamp = new Timestamp(System.currentTimeMillis()).toString().replace(' ', '_');
-        this.requestID = instanceID + "_" + Integer.toString(this.sequenceID);
+        this.timestamp = new Timestamp(System.currentTimeMillis()).toString()
+            .replace(' ','_')
+            .replace(':','-')
+            .replace('.','-');
+            this.instanceID = instanceID;
     }
 
-    @DynamoDBAttribute(attributeName="request_id")
-    public String getRequestID(){
-        return this.requestID;
+    @DynamoDBAttribute(attributeName="instance_id")
+    public String getInstanceID(){
+        return this.instanceID;
     }
 
-    public void setRequestID(String requestID){
-        this.requestID = requestID;
+    public void setInstanceID(String instanceID){
+        this.instanceID = instanceID;
     }
     
     public void setWeight(long weight){
@@ -84,12 +82,6 @@ public class RequestMetrics {
 	public String getImage(){
 		return this.i;
     }
-
-
-    @DynamoDBAttribute(attributeName="sequenceID")
-	public int getSequenceID(){
-		return this.sequenceID;
-	}
 
 	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
 		this.w = w;
@@ -120,9 +112,6 @@ public class RequestMetrics {
 		this.bbCount += incr;
     }
     
-	public static int getCount(){
-		return counter.get();
-	}
 
     @DynamoDBAttribute(attributeName="threadID")
 	public long getThreadID(){
@@ -149,7 +138,7 @@ public class RequestMetrics {
 
 	public void outputToFile(){
 		try{
-			String fileName = "/tmp/" + sdf.format(this.timestamp) + "__stats__" + Thread.currentThread().getId() + ".txt";
+			String fileName = "/tmp/" + this.timestamp + "__stats__" + Thread.currentThread().getId() + ".txt";
 			File file = new File(fileName);
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			writer.write(this.toString());
@@ -185,13 +174,6 @@ public class RequestMetrics {
 	}
 	
 
-
-    /**
-     * @param sequenceID the sequenceID to set
-     */
-    public void setSequenceID(int sequenceID) {
-        this.sequenceID = sequenceID;
-    }
 
     /**
      * @param threadID the threadID to set
