@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import com.amazonaws.util.EC2MetadataUtils;
@@ -19,7 +20,7 @@ import com.amazonaws.util.EC2MetadataUtils;
 public class RequestMetrics {
 
 	private long threadID;
-    private String timestamp;
+    private Date timestamp;
     private String instanceID;
 
 	private int w;
@@ -38,8 +39,6 @@ public class RequestMetrics {
 	private long bbCount;
 	private long loadcount;
 	private long storecount;
-
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
     
     // Para a DynamoDB conseguir instanciar a classe tambem
     public RequestMetrics(){
@@ -48,11 +47,8 @@ public class RequestMetrics {
 
 	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
-        this.timestamp = new Timestamp(System.currentTimeMillis()).toString()
-            .replace(' ','_')
-            .replace(':','-')
-            .replace('.','-');
-            this.instanceID = instanceID;
+        this.timestamp = new Date();
+        this.instanceID = instanceID;
     }
 
     @DynamoDBAttribute(attributeName="instance_id")
@@ -193,15 +189,15 @@ public class RequestMetrics {
     /**
      * @return Timestamp return the timestamp
      */
-    @DynamoDBAttribute(attributeName="timestamp")
-    public String getTimestamp() {
+    @DynamoDBRangeKey(attributeName="timestamp")
+    public Date getTimestamp() {
         return timestamp;
     }
 
     /**
      * @param timestamp the timestamp to set
      */
-    public void setTimestamp(String timestamp) {
+    public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
 
