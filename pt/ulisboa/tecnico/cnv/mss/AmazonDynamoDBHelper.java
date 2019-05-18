@@ -16,6 +16,7 @@ package pt.ulisboa.tecnico.cnv.mss;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -45,6 +46,7 @@ import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.amazonaws.util.EC2MetadataUtils;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 
 import pt.ulisboa.tecnico.cnv.mss.*;
 
@@ -106,7 +108,15 @@ public class AmazonDynamoDBHelper {
             .withRegion("eu-west-3")
             .build();
 
-        mapper = new DynamoDBMapper(dynamoDB);
+        if(mapper == null){
+            mapper = new DynamoDBMapper(dynamoDB);
+        }
+
+    }
+
+    public static List<RequestMetrics> query(Class itemClass, DynamoDBQueryExpression queryExpression) throws Exception{
+        init();
+        return mapper.query(itemClass, queryExpression);
     }
 
     public static void createTable() throws Exception {
@@ -116,8 +126,8 @@ public class AmazonDynamoDBHelper {
 
             // Create a table with a primary hash key named 'request_id', which holds a string
             CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME)
-                .withKeySchema(new KeySchemaElement().withAttributeName("request_id").withKeyType(KeyType.HASH))
-                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("request_id").withAttributeType(ScalarAttributeType.S))
+                .withKeySchema(new KeySchemaElement().withAttributeName("image_name").withKeyType(KeyType.HASH))
+                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("image_name").withAttributeType(ScalarAttributeType.S))
                 .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
 
             // Create table if it does not exist yet

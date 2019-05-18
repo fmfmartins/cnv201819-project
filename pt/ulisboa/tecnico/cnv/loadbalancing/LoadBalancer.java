@@ -97,14 +97,15 @@ public class LoadBalancer {
 
 		int port = LoadBalancer.getInstance().getPort();		
 
-                final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
+        final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
 		
-                load_balancer.createContext("/climb", new SendQueryHandler());
-                load_balancer.createContext("/test", new MyTestHandler());
-                // be aware! infinite pool of threads!
-                load_balancer.setExecutor(Executors.newCachedThreadPool());
-                load_balancer.start();
-                System.out.println(load_balancer.getAddress().toString());
+        load_balancer.createContext("/climb", new SendQueryHandler());
+        load_balancer.createContext("/test", new MyTestHandler());
+        // be aware! infinite pool of threads!
+        load_balancer.setExecutor(Executors.newCachedThreadPool());
+        load_balancer.start();
+		System.out.println(load_balancer.getAddress().toString());
+
 	}
 
 	//New instance running
@@ -209,6 +210,8 @@ public class LoadBalancer {
 			//Create a params object
 			String[] listParams = query.split("&");
 			Params params = new Params(listParams);	
+
+			getEstimatedCost(params);
 			
 			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
 			//String DNSName = loadBalancer.chooseInstance()
@@ -264,46 +267,59 @@ public class LoadBalancer {
     
 
 
-    public long getEstimatedCost(RequestMetrics request){
+    public static long getEstimatedCost(Params request){
+		System.out.println("getEstimatedCost");
         
-        List<RequestMetrics> dbMetrics = new ArrayList<>();
-        dbMetrics = getSimilarMetricsFromDB(request);
-        for(RequestMetrics metric : dbMetrics){
-            System.out.println(metric);
-        }
+        List<RequestMetrics> dbMetrics = null;
+		dbMetrics = getSimilarMetricsFromDB(request);
+		if(dbMetrics == null){
+			System.out.println("Hello" + dbMetrics.size());
+		} else {
+			for(RequestMetrics metric : dbMetrics){
+				System.out.println(metric);
+			}
+		}
         return 69420;
     }
 
-    private List<RequestMetrics> getSimilarMetricsFromDB(RequestMetrics request){
+    private static List<RequestMetrics> getSimilarMetricsFromDB(Params request){
+		System.out.println("getSimilarMetricsFromDB");
+		List<RequestMetrics> queryResult = new ArrayList<>();
+		try{
+			Map<String, AttributeValue> queryParams = new HashMap<>();
+			queryParams.put(":min_upper_left_x", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getX0())))));
+			queryParams.put(":max_upper_left_x", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getX0())))));
+			queryParams.put(":min_upper_left_y", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getY0())))));
+			queryParams.put(":max_upper_left_y", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getY0())))));
+			queryParams.put(":min_lower_right_x", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getX1())))));
+			queryParams.put(":max_lower_right_x", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getX1())))));
+			queryParams.put(":min_lower_right_y", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getY1())))));
+			queryParams.put(":max_lower_right_y", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getY1())))));
+			queryParams.put(":min_start_x", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getXS())))));
+			queryParams.put(":max_start_x", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getXS())))));
+			queryParams.put(":min_start_y", new AttributeValue().withN(Integer.toString(computeLowerBound(Integer.parseInt(request.getYS())))));
+			queryParams.put(":max_start_y", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getYS())))));
+			queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
+			queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
 
-        Map<String, AttributeValue> queryParams = new HashMap<>();
-        queryParams.put(":min_upper_left_x", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getX0()))));
-        queryParams.put(":max_upper_left_x", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getX0()))));
-        queryParams.put(":min_upper_left_y", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getY0()))));
-        queryParams.put(":max_upper_left_y", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getY0()))));
-        queryParams.put(":min_lower_right_x", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getX1()))));
-        queryParams.put(":max_lower_right_x", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getX1()))));
-        queryParams.put(":min_lower_right_y", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getY1()))));
-        queryParams.put(":max_lower_right_y", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getY1()))));
-        queryParams.put(":min_start_x", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getXS()))));
-        queryParams.put(":max_start_x", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getXS()))));
-        queryParams.put(":min_start_y", new AttributeValue().withN(Integer.toString(computeLowerBound(request.getYS()))));
-        queryParams.put(":max_start_y", new AttributeValue().withN(Integer.toString(computeUpperBound(request.getYS()))));
-        queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
-        queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
-
-        DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
-            .withKeyConditionExpression("image_name = :image_name")
-            .withFilterExpression("solver_algorithm = :solver_algorithm"
-                + " and upper_left_x between :min_upper_left_x and :max_upper_left_x"
-                + " and upper_left_y between :min_upper_left_y and :max_upper_left_y"
-                + " and lower_right_x between :min_lower_right_x and :max_lower_right_x"
-                + " and lower_right_y between :min_lower_right_y and :max_lower_right_y"
-                + " and start_x between :min_start_x and :max_start_x"
-                + " and start_y between :min_start_y and max_start_y")
-            .withExpressionAttributeValues(queryParams);
-
-        return AmazonDynamoDBHelper.mapper.query(RequestMetrics.class, queryExpression);
+			DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
+				.withKeyConditionExpression("image_name = :image_name")
+				.withFilterExpression("solver_algorithm = :solver_algorithm"
+					+ " and image_name = :image_name"
+					+ " and upper_left_x between :min_upper_left_x and :max_upper_left_x"
+					+ " and upper_left_y between :min_upper_left_y and :max_upper_left_y"
+					+ " and lower_right_x between :min_lower_right_x and :max_lower_right_x"
+					+ " and lower_right_y between :min_lower_right_y and :max_lower_right_y"
+					+ " and start_x between :min_start_x and :max_start_x"
+					+ " and start_y between :min_start_y and :max_start_y")
+				.withExpressionAttributeValues(queryParams);
+			
+			queryResult = AmazonDynamoDBHelper.query(RequestMetrics.class, queryExpression);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+        
+        return queryResult;
     }
 
     static int computeLowerBound(int param){

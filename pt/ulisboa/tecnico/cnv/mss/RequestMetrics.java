@@ -52,7 +52,7 @@ public class RequestMetrics {
         this.requestID = instanceID + "_" + Integer.toString(this.sequenceID);
     }
 
-    @DynamoDBHashKey(attributeName="request_id")
+    @DynamoDBAttribute(attributeName="request_id")
     public String getRequestID(){
         return this.requestID;
     }
@@ -75,7 +75,7 @@ public class RequestMetrics {
 		return this.s;
 	}
 
-    @DynamoDBAttribute(attributeName="image_name")
+    @DynamoDBHashKey(attributeName="image_name")
 	public String getImage(){
 		return this.i;
     }
