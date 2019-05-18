@@ -23,7 +23,7 @@ public class RequestMetrics {
 
 	private int sequenceID;
 	private long threadID;
-    private Timestamp timestamp;
+    private String timestamp;
     private String requestID;
 
 	private int w;
@@ -53,7 +53,7 @@ public class RequestMetrics {
 	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
 		this.sequenceID = counter.incrementAndGet();
-        this.timestamp = new Timestamp(System.currentTimeMillis());
+        this.timestamp = new Timestamp(System.currentTimeMillis()).toString();
         this.requestID = instanceID + "_" + Integer.toString(this.sequenceID);
     }
 
@@ -204,7 +204,7 @@ public class RequestMetrics {
      * @return Timestamp return the timestamp
      */
     @DynamoDBAttribute(attributeName="timestamp")
-    public Timestamp getTimestamp() {
+    public String getTimestamp() {
         return timestamp;
     }
 
@@ -212,7 +212,7 @@ public class RequestMetrics {
      * @param timestamp the timestamp to set
      */
     public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp;
+        this.timestamp = timestamp.toString();
     }
 
     /**
