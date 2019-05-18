@@ -5,7 +5,7 @@ export CNV_GEN=$CNV_ROOT/pt/ulisboa/tecnico/cnv/generator
 export CNV_SERVER=$CNV_ROOT/pt/ulisboa/tecnico/cnv/server
 export CNV_SOLVER=$CNV_ROOT/pt/ulisboa/tecnico/cnv/solver
 export CNV_UTIL=$CNV_ROOT/pt/ulisboa/tecnico/cnv/util
-
+export CNV_LB=$CNV_ROOT/pt/ulisboa/tecnico/cnv/loadbalancing
 export CNV_METRICS=$CNV_ROOT/pt/ulisboa/tecnico/cnv/mss
 export CNV_TMP=$HOME/compiled_cnv
 
@@ -38,6 +38,7 @@ clean() {
 	rm -f $CNV_SOLVER/*.class
 	rm -f $CNV_UTIL/*.class
 	rm -f $CNV_METRICS/*.class
+	rm -f $CNV_LB/*.class
 	check Cleaning	
 }
 
@@ -56,6 +57,9 @@ build() {
 	check Compilation
 	echo "Compiling CNV_METRICS ..."
 	javac $CNV_METRICS/*.java
+	check Compilation
+	echo "Compiling CNV_LOADBALANCING ..."
+	javac $CNV_LB/*.java
 	check Compilation
 	cp -r $CNV_ROOT/pt/ $CNV_TMP/
 	check Backup
@@ -81,6 +85,10 @@ metrics() {
 
 run() {
 	java pt.ulisboa.tecnico.cnv.server.WebServer	
+}
+
+runLB() {
+	java pt.ulisboa.tecnico.cnv.loadbalancing.LoadBalancer
 }
 
 
