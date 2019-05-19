@@ -58,8 +58,6 @@ public class LoadBalancer {
 	private static int RANGE_PX_OFFSET = 10;
 	private static int MAX_CACHE_SIZE = 20;
 
-
-
 	// LoadBalancer instance
 	private static final LoadBalancer loadBalancer = new LoadBalancer();
 	// Cache where the key is the image name
@@ -94,11 +92,7 @@ public class LoadBalancer {
 		}
         
 	}
-	
-	// Get LoadBalancer port
-	public static int getPort(){
-		return port;
-	}
+
 	
 	public void init() throws Exception {
 
@@ -116,83 +110,18 @@ public class LoadBalancer {
 
 	}
 
-	private void initCache(){
-		cache = new ConcurrentHashMap();
-		cache.put(HeightMaps.IMAGE_1, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_2, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_3, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_4, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_5, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_6, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_7, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_8, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_9, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_10, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_11, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_12, new LinkedList<RequestMetrics>());
-		cache.put(HeightMaps.IMAGE_13, new LinkedList<RequestMetrics>());
-	}
-
-	//New instance running
-	public static void addInstance(String dnsName){
- 		instancesRunning.put(dnsName,new ArrayList<Params>());
-		instancesCost.put(dnsName,new Long(0));
-	}
-
-	//Instance off
-	public static void removeInstance(String dnsName){
-		instancesRunning.remove(dnsName);
-		instancesCost.remove(dnsName);
-	}
-
-	
-	// Choose instance to redirect the request
-	public static String chooseInstance(){
-		
-		String DNSName="";
-		long actualCost=-1;
-
-		// Get instance with lower cost
-		for(Map.Entry<String, Long> instance : instancesCost.entrySet()){
-			long instanceCost=instance.getValue();
-			if(instanceCost<actualCost || actualCost==-1){
-				actualCost=instanceCost;
-				DNSName=instance.getKey();
-			}
-		
-		}
-		return DNSName;
-								
-	}
-
-	// Add request to instance
-	public static void addRequest(String dnsName,Params params){
-		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
-		requestsOnInstance.add(params);
-		// Update cost of instance
-		Long cost = instancesCost.get(dnsName);
-		instancesCost.put(dnsName,cost+params.getCost());
-		
-	}
-
-	// Remove request from instance
-	public static void removeRequest(String dnsName, Params params){
-		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
-               	requestsOnInstance.remove(params);
-		// Update cost of instance
-		Long cost = instancesCost.get(dnsName);
-		instancesCost.put(dnsName,cost-params.getCost());
-	}
-       
-	// Handler test
-    	static class MyTestHandler implements HttpHandler {
-        	@Override
+	//================================================================================
+    // REQUEST HANDLERS
+	//================================================================================
+   
+    static class MyTestHandler implements HttpHandler {
+        @Override
 		public void handle(final HttpExchange t) throws IOException {
-            		final Headers headers = t.getResponseHeaders();
-                        
-            		final String query = t.getRequestURI().getQuery();
+			final Headers headers = t.getResponseHeaders();
+				
+			final String query = t.getRequestURI().getQuery();
 
-            		System.out.println("> Query:\t" + query);
+			System.out.println("> Query:\t" + query);
                         
 			String response = "test ok";
 				
@@ -208,21 +137,19 @@ public class LoadBalancer {
 			os.write(response.getBytes());
 			os.close();
 		}
-
 	}
 
-	// Handler that deal with the requests
 	static class SendQueryHandler implements HttpHandler{
 		@Override
 		public void handle(final HttpExchange t) throws IOException{
-            		final Headers headers = t.getResponseHeaders();
-                       
-            		System.out.println("----------NEW REQUEST----------\t");
-            
-            		final String query = t.getRequestURI().getQuery();
-			
-            		System.out.println("> Headers:\t" + query);
-            		System.out.println("> Query:\t" + query);
+			final Headers headers = t.getResponseHeaders();
+				
+			System.out.println("----------NEW REQUEST----------\t");
+	
+			final String query = t.getRequestURI().getQuery();
+	
+			System.out.println("> Headers:\t" + query);
+			System.out.println("> Query:\t" + query);
 			System.out.println("> Request:\t" + t.getRequestURI().toString());
 			
 			
@@ -279,24 +206,85 @@ public class LoadBalancer {
         }
     } 
     
-
-
-    public static long getEstimatedCost(Params request){
-		System.out.println("getEstimatedCost");
-		long eCost = -1;
-        List<RequestMetrics> dbMetrics = null;
-		dbMetrics = getSimilarMetricsFromDB(request);
-		if(dbMetrics == null){
-			System.out.println("Empty set-> size: " + dbMetrics.size());
-		} else {
-			for(RequestMetrics metric : dbMetrics){
-				addToCache(metric);
+	
+	
+	static Params processRequest(Params request){
+		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(request.getImage()));
+		for(RequestMetrics metric : cachedMetrics){
+			if(checkCacheHit(metric, request)){
+				// Refresh Cache
+				int cachedMetricIndex = cachedMetrics.indexOf(metric);
+				RequestMetrics cachedMetric = cachedMetrics.remove(cachedMetricIndex);
+				cachedMetrics.add(cachedMetric);
+				request.setCost(metric.getWeight());
+				return request;
 			}
-			eCost = computeAverageCost(dbMetrics);
 		}
-        return eCost;
-    }
+		request.setCost(getEstimatedCost(request));
+		return request;
+	}
+	
+	//================================================================================
+    // INSTANCE MONITORING METHODS
+	//================================================================================
 
+	//New instance running
+	public static void addInstance(String dnsName){
+		instancesRunning.put(dnsName,new ArrayList<Params>());
+	   instancesCost.put(dnsName,new Long(0));
+   }
+
+   //Instance off
+   public static void removeInstance(String dnsName){
+	   instancesRunning.remove(dnsName);
+	   instancesCost.remove(dnsName);
+   }
+
+   
+   // Choose instance to redirect the request
+   public static String chooseInstance(){
+	   
+	   String DNSName="";
+	   long actualCost=-1;
+
+	   // Get instance with lower cost
+	   for(Map.Entry<String, Long> instance : instancesCost.entrySet()){
+		   long instanceCost=instance.getValue();
+		   if(instanceCost<actualCost || actualCost==-1){
+			   actualCost=instanceCost;
+			   DNSName=instance.getKey();
+		   }
+	   
+	   }
+	   return DNSName;
+							   
+   }
+
+   // Add request to instance
+   public static void addRequest(String dnsName,Params params){
+	   ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+	   requestsOnInstance.add(params);
+	   // Update cost of instance
+	   Long cost = instancesCost.get(dnsName);
+	   instancesCost.put(dnsName,cost+params.getCost());
+	   
+   }
+
+   // Remove request from instance
+   public static void removeRequest(String dnsName, Params params){
+	   ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+				  requestsOnInstance.remove(params);
+	   // Update cost of instance
+	   Long cost = instancesCost.get(dnsName);
+	   instancesCost.put(dnsName,cost-params.getCost());
+   }
+
+
+	//================================================================================
+    // REQUEST COST METHODS
+	//================================================================================
+
+	
     private static List<RequestMetrics> getSimilarMetricsFromDB(Params request){
 		System.out.println("getSimilarMetricsFromDB");
 		List<RequestMetrics> queryResult = new ArrayList<>();
@@ -357,30 +345,28 @@ public class LoadBalancer {
 		}
 	}
 
-	static void addToCache(RequestMetrics metric){
-		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(metric.getImage()));
-		if(cachedMetrics.size() == MAX_CACHE_SIZE){
-			cachedMetrics.remove(0);
-		}
-		cachedMetrics.add(metric);
-	}
-
-	static Params processRequest(Params request){
-		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(request.getImage()));
-		for(RequestMetrics metric : cachedMetrics){
-			if(checkCacheHit(metric, request)){
-				// Refresh Cache
-				int cachedMetricIndex = cachedMetrics.indexOf(metric);
-				RequestMetrics cachedMetric = cachedMetrics.remove(cachedMetricIndex);
-				cachedMetrics.add(cachedMetric);
-				request.setCost(metric.getWeight());
-				return request;
+	
+    public static long getEstimatedCost(Params request){
+		System.out.println("getEstimatedCost");
+		long eCost = -1;
+        List<RequestMetrics> dbMetrics = null;
+		dbMetrics = getSimilarMetricsFromDB(request);
+		if(dbMetrics == null){
+			System.out.println("Empty set-> size: " + dbMetrics.size());
+		} else {
+			for(RequestMetrics metric : dbMetrics){
+				addToCache(metric);
 			}
+			eCost = computeAverageCost(dbMetrics);
 		}
-		request.setCost(getEstimatedCost(request));
-		return request;
+        return eCost;
 	}
 
+
+	//================================================================================
+    // CACHE METHODS
+	//================================================================================
+	
 	static boolean checkCacheHit(RequestMetrics metric, Params request){
 		if(
 			metric.getImage().equals(request.getImage()) &&
@@ -399,5 +385,40 @@ public class LoadBalancer {
 		}
 		return false;
 	}
+
+	static void addToCache(RequestMetrics metric){
+		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(metric.getImage()));
+		if(cachedMetrics.size() == MAX_CACHE_SIZE){
+			cachedMetrics.remove(0);
+		}
+		cachedMetrics.add(metric);
+	}
+
+	private void initCache(){
+		cache = new ConcurrentHashMap();
+		cache.put(HeightMaps.IMAGE_1, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_2, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_3, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_4, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_5, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_6, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_7, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_8, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_9, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_10, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_11, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_12, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_13, new LinkedList<RequestMetrics>());
+	}
+
+
+	//================================================================================
+    // GETTERS and SETTERS 
+	//================================================================================
+
+	public static int getPort(){
+		return port;
+	}
+
 }
 	
