@@ -9,15 +9,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.lang.Thread.*;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -52,12 +55,15 @@ import javax.imageio.ImageIO;
 
 public class LoadBalancer {
 
-    private static int RANGE_PX_OFFSET = 10;
+	private static int RANGE_PX_OFFSET = 10;
+	private static int MAX_CACHE_SIZE = 20;
+
+
 
 	// LoadBalancer instance
 	private static final LoadBalancer loadBalancer = new LoadBalancer();
 	// Cache where the key is the image name
-	private static Map<String, List<RequestMetrics>> cache = new HashMap<>();
+	private static Map<String, List<RequestMetrics>> cache;
 	
 	
 	// Port	
@@ -87,6 +93,7 @@ public class LoadBalancer {
 		}
 		catch(Exception e){
 			System.out.println("Exception on init:"+e.getMessage());
+			e.printStackTrace();
 		}
         
 	}
@@ -95,9 +102,25 @@ public class LoadBalancer {
 		return port;
 	}
 	
-	public void init() throws Exception{
+	public void init() throws Exception {
 
-		int port = LoadBalancer.getInstance().getPort();		
+		int port = LoadBalancer.getInstance().getPort();
+
+
+		cache = new ConcurrentHashMap();
+		cache.put(HeightMaps.IMAGE_1, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_2, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_3, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_4, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_5, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_6, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_7, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_8, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_9, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_10, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_11, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_12, new LinkedList<RequestMetrics>());
+		cache.put(HeightMaps.IMAGE_13, new LinkedList<RequestMetrics>());
 
         final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
 		
@@ -206,11 +229,11 @@ public class LoadBalancer {
 			
 			//Create a params object
 			String[] listParams = query.split("&");
-			Params params = new Params(listParams);	
+			Params params = new Params(listParams);
 
-			params.setCost(getEstimatedCost(params));
+			processRequest(params);
 
-			System.out.println("EstimatedCost = " + params.getCost());
+			System.out.println("Request Cost = " + params.getCost());
 			
 			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
 			//String DNSName = loadBalancer.chooseInstance()
@@ -224,17 +247,12 @@ public class LoadBalancer {
             
             // Send request
             con.setRequestMethod("GET");
-
 			//Get response        
             int responseCode = con.getResponseCode();
-	
 			InputStream response = con.getInputStream();
-    			
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
 			byte[] buffer = new byte[1024];
 			int len;
-
 		 	//read bytes from the input stream and store them in buffer
 		 	while ((len = response.read(buffer)) != -1) {
 		 		// write bytes from the buffer into output stream
@@ -243,19 +261,16 @@ public class LoadBalancer {
 		
 		
 			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
-
 			headers.add("Content-Type","image/png");
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
             headers.add("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-
             OutputStream os = t.getResponseBody();
             os.write(bos.toByteArray());
-            os.close();
-
+			os.close();
+			
 			System.out.println("> Response \t:" +  String.valueOf(responseCode));			
-
 			System.out.println("-------------------------------\t");
         }
     } 
@@ -264,13 +279,16 @@ public class LoadBalancer {
 
     public static long getEstimatedCost(Params request){
 		System.out.println("getEstimatedCost");
-
 		long eCost = -1;
         List<RequestMetrics> dbMetrics = null;
 		dbMetrics = getSimilarMetricsFromDB(request);
 		if(dbMetrics == null){
 			System.out.println("Empty set-> size: " + dbMetrics.size());
 		} else {
+			for(RequestMetrics metric : dbMetrics){
+				addToCache(metric);
+			}
+			System.out.println("CachedList size -> " + cachedMetrics.size());
 			eCost = computeAverageCost(dbMetrics);
 		}
         return eCost;
@@ -325,10 +343,58 @@ public class LoadBalancer {
 	
 	static long computeAverageCost(List<RequestMetrics> dbMetrics){
 		long totalWeight = 0;
-		for(RequestMetrics metric : dbMetrics){
-			totalWeight += metric.getWeight();
+		if(dbMetrics.size() > 0){
+			for(RequestMetrics metric : dbMetrics){
+				totalWeight += metric.getWeight();
+			}
+			return (long) (totalWeight / dbMetrics.size());
+		} else {
+			// NEED TO DECIDE ON UNKNOWN COST
+			return -1;
 		}
-		return (long) (totalWeight / dbMetrics.size());
+	}
+
+	static void addToCache(RequestMetrics metric){
+		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(metric.getImage()));
+		if(cachedMetrics.size() == MAX_CACHE_SIZE){
+			cachedMetrics.remove(0);
+		}
+		cachedMetrics.add(metric);
+	}
+
+	static Params processRequest(Params request){
+		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(request.getImage()));
+		for(RequestMetrics metric : cachedMetrics){
+			if(checkCacheHit(metric, request)){
+				// Refresh Cache
+				int cachedMetricIndex = cachedMetrics.indexOf(metric);
+				RequestMetrics cachedMetric = cachedMetrics.remove(cachedMetricIndex);
+				cachedMetrics.add(cachedMetric);
+				request.setCost(metric.getWeight());
+				return request;
+			}
+		}
+		request.setCost(getEstimatedCost(request));
+		return request;
+	}
+
+	static boolean checkCacheHit(RequestMetrics metric, Params request){
+		if(
+			metric.getImage().equals(request.getImage()) &&
+			metric.getW() == Integer.parseInt(request.getW()) &&
+			metric.getH() == Integer.parseInt(request.getH()) &&
+			metric.getX0() == Integer.parseInt(request.getX0()) &&
+			metric.getX1() == Integer.parseInt(request.getX1()) &&
+			metric.getY0() == Integer.parseInt(request.getY0()) &&
+			metric.getY1() == Integer.parseInt(request.getY1()) &&
+			metric.getXS() == Integer.parseInt(request.getXS()) &&
+			metric.getYS() == Integer.parseInt(request.getYS()) &&
+			metric.getAlgorithm().equals(request.getAlgorithm()) &&
+			metric.getImage().equals(request.getImage())
+		) {
+			return true;
+		}
+		return false;
 	}
 }
 	
