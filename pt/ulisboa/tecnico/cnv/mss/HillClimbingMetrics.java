@@ -72,7 +72,7 @@ public class HillClimbingMetrics
 
 
 	public static synchronized void printSequenceID(String foo){
-		System.out.println("HillClimbingMetrics:\t" + Thread.currentThread().getId() + "\t" + RequestMetrics.getCount());
+		System.out.println("HillClimbingMetrics:\t" + Thread.currentThread().getId());
 	}
 	
 

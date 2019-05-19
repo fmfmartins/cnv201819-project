@@ -23,9 +23,16 @@ import pt.ulisboa.tecnico.cnv.solver.SolverArgumentParser;
 import pt.ulisboa.tecnico.cnv.solver.SolverFactory;
 import pt.ulisboa.tecnico.cnv.mss.*;
 
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.util.EC2MetadataUtils;
+
 import javax.imageio.ImageIO;
 
 public class WebServer {
+
+	private static DynamoDBMapper dbMapper;
 
 	public static void main(final String[] args) throws Exception {
 
@@ -36,7 +43,7 @@ public class WebServer {
 			@Override
 			public void run() {
 				try{
-					AmazonDynamoDBUploader.createTable();
+					AmazonDynamoDBHelper.createTable();
 				} catch (Exception e){
 					System.out.println(e.getMessage());
 				}
@@ -131,7 +138,7 @@ public class WebServer {
 
 			// Store the request parameters
 
-			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId());
+			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId(), EC2MetadataUtils.getInstanceId());
 
 			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]), Integer.parseInt(args[7]),
 					Integer.parseInt(args[9]), Integer.parseInt(args[11]), Integer.parseInt(args[13]), Integer.parseInt(args[15]),
@@ -184,8 +191,8 @@ public class WebServer {
 			//Output to file 
 
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
-			m.printInfo();
-			m.outputToFile();
+			System.out.println(m);
+			//m.outputToFile();
 
 			// Send response to browser.
 			final Headers hdrs = t.getResponseHeaders();
@@ -222,7 +229,7 @@ public class WebServer {
 				long mWeight = MetricsCalculator.computeWeight(m);
 				//System.out.println("> mWeight : " + mWeight);
 				m.setWeight(mWeight);
-				AmazonDynamoDBUploader.uploadItem(m);
+				AmazonDynamoDBHelper.uploadItem(m);
 				System.out.println("> Metric upload success ");
 			} catch (Exception e){
 				System.out.println("> Metric upload failure ");

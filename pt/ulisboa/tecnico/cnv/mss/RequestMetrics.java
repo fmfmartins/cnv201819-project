@@ -9,15 +9,19 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import com.amazonaws.util.EC2MetadataUtils;
 
+@DynamoDBTable(tableName="statistics")
 public class RequestMetrics {
 
-
-	private static final AtomicInteger counter = new AtomicInteger(0);
-
-	private int sequenceID;
 	private long threadID;
-	private Timestamp timestamp;
+    private Date timestamp;
+    private String instanceID;
 
 	private int w;
 	private int h;
@@ -35,35 +39,53 @@ public class RequestMetrics {
 	private long bbCount;
 	private long loadcount;
 	private long storecount;
+    
+    // Para a DynamoDB conseguir instanciar a classe tambem
+    public RequestMetrics(){
 
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+    }
 
-
-	public RequestMetrics(long threadID){
+	public RequestMetrics(long threadID, String instanceID){
 		this.threadID = threadID;
-		this.sequenceID = counter.incrementAndGet();
-		this.timestamp = new Timestamp(System.currentTimeMillis());
+        this.timestamp = new Date();
+        this.instanceID = instanceID;
+    }
+
+    @DynamoDBAttribute(attributeName="instance_id")
+    public String getInstanceID(){
+        return this.instanceID;
+    }
+
+    public void setInstanceID(String instanceID){
+        this.instanceID = instanceID;
     }
     
     public void setWeight(long weight){
         this.weight = weight;
     }
 
+    @DynamoDBAttribute(attributeName="e_weight")
     public long getWeight(){
         return this.weight;
     }
 
+    @DynamoDBAttribute(attributeName="solver_algorithm")
 	public String getAlgorithm(){
 		return this.s;
-	}
+    }
+    
+    public void setAlgorithm(String solver){
+        this.s = solver;
+    }
 
+    @DynamoDBHashKey(attributeName="image_name")
 	public String getImage(){
 		return this.i;
-	}
+    }
 
-	public int getSequenceID(){
-		return this.sequenceID;
-	}
+    public void setImage(String imageName){
+        this.i = imageName;
+    }
 
 	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
 		this.w = w;
@@ -92,18 +114,16 @@ public class RequestMetrics {
 
 	public void incrBBCount(int incr){
 		this.bbCount += incr;
-	}
+    }
+    
 
-	public static int getCount(){
-		return counter.get();
-	}
-
+    @DynamoDBAttribute(attributeName="threadID")
 	public long getThreadID(){
 		return this.threadID;
 	}
 
 	public void printInfo(){
-		System.out.println("\t//Request Parameters//\t");
+		System.out.println("//Request Parameters//");
 		System.out.println("Width: " + this.w);
 		System.out.println("Height: " + this.h);
 		System.out.println("Upper-Left Corner X: " + this.x0);
@@ -114,7 +134,7 @@ public class RequestMetrics {
 		System.out.println("Starting Point Y: " + this.yS);
 		System.out.println("Solver Algorithm: " + this.s);
 		System.out.println("Image Path: " + this.i);
-		System.out.println("\t//Metrics//\t");
+		System.out.println("//Metrics//");
 		System.out.println("Number of basic blocks: " + this.bbCount);
 		System.out.println("Load Instructions: " + this.loadcount);
 		System.out.println("Store Instructions: " + this.storecount);
@@ -122,7 +142,7 @@ public class RequestMetrics {
 
 	public void outputToFile(){
 		try{
-			String fileName = "/tmp/" + sdf.format(this.timestamp) + "__stats__" + Thread.currentThread().getId() + ".txt";
+			String fileName = "/tmp/" + this.timestamp + "__stats__" + Thread.currentThread().getId() + ".txt";
 			File file = new File(fileName);
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			writer.write(this.toString());
@@ -134,8 +154,10 @@ public class RequestMetrics {
 
 	@Override
 	public String toString(){
-		String s;
-		s = "\t//Request Parameters//\t\n";
+        String s;
+        s =  String.format("//////////////////////\n");
+        s += String.format("//Request Parameters//\n");
+        s += String.format("//////////////////////\n");
 		s += String.format("Width: %d\n" , this.w);
 		s += String.format("Height: %d\n", this.h);
 		s += String.format("Upper-Left Corner X: %d\n", this.x0);
@@ -145,8 +167,10 @@ public class RequestMetrics {
 		s += String.format("Starting Point X: %d\n" , this.xS);
 		s += String.format("Starting Point Y: %d\n" , this.yS);
 		s += String.format("Solver Algorithm: %s\n" , this.s);
-		s += String.format("Image Path: %s\n" , this.i);
-		s += String.format("\t//Metrics//\t\n");
+        s += String.format("Image Path: %s\n" , this.i);
+        s += String.format("///////////\n");
+        s += String.format("//Metrics//\n");
+        s += String.format("///////////\n");
 		s += String.format("Number of basic blocks: %d\n" , this.bbCount);
 		s += String.format("Load Instructions: %d\n" , this.loadcount);
 		s += String.format("Store Instructions: %d\n" , this.storecount);
@@ -154,13 +178,6 @@ public class RequestMetrics {
 	}
 	
 
-
-    /**
-     * @param sequenceID the sequenceID to set
-     */
-    public void setSequenceID(int sequenceID) {
-        this.sequenceID = sequenceID;
-    }
 
     /**
      * @param threadID the threadID to set
@@ -172,20 +189,22 @@ public class RequestMetrics {
     /**
      * @return Timestamp return the timestamp
      */
-    public Timestamp getTimestamp() {
+    @DynamoDBRangeKey(attributeName="timestamp")
+    public Date getTimestamp() {
         return timestamp;
     }
 
     /**
      * @param timestamp the timestamp to set
      */
-    public void setTimestamp(Timestamp timestamp) {
+    public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
 
     /**
      * @return int return the w
      */
+    @DynamoDBAttribute(attributeName="width")
     public int getW() {
         return w;
     }
@@ -200,6 +219,7 @@ public class RequestMetrics {
     /**
      * @return int return the h
      */
+    @DynamoDBAttribute(attributeName="height")
     public int getH() {
         return h;
     }
@@ -214,6 +234,7 @@ public class RequestMetrics {
     /**
      * @return int return the x0
      */
+    @DynamoDBAttribute(attributeName="upper_left_x")
     public int getX0() {
         return x0;
     }
@@ -228,6 +249,7 @@ public class RequestMetrics {
     /**
      * @return int return the x1
      */
+    @DynamoDBAttribute(attributeName="lower_right_x")
     public int getX1() {
         return x1;
     }
@@ -242,6 +264,7 @@ public class RequestMetrics {
     /**
      * @return int return the y0
      */
+    @DynamoDBAttribute(attributeName="upper_left_y")
     public int getY0() {
         return y0;
     }
@@ -256,6 +279,7 @@ public class RequestMetrics {
     /**
      * @return int return the y1
      */
+    @DynamoDBAttribute(attributeName="lower_right_y")
     public int getY1() {
         return y1;
     }
@@ -270,6 +294,7 @@ public class RequestMetrics {
     /**
      * @return int return the xS
      */
+    @DynamoDBAttribute(attributeName="start_x")
     public int getXS() {
         return xS;
     }
@@ -284,6 +309,7 @@ public class RequestMetrics {
     /**
      * @return int return the yS
      */
+    @DynamoDBAttribute(attributeName="start_y")
     public int getYS() {
         return yS;
     }
@@ -312,6 +338,7 @@ public class RequestMetrics {
     /**
      * @return long return the bbCount
      */
+    @DynamoDBAttribute(attributeName="basic_blocks")
     public long getBbCount() {
         return bbCount;
     }
@@ -326,6 +353,7 @@ public class RequestMetrics {
     /**
      * @return long return the loadcount
      */
+    @DynamoDBAttribute(attributeName="load_instructions")
     public long getLoadcount() {
         return loadcount;
     }
@@ -340,6 +368,7 @@ public class RequestMetrics {
     /**
      * @return long return the storecount
      */
+    @DynamoDBAttribute(attributeName="store_instructions")
     public long getStorecount() {
         return storecount;
     }
