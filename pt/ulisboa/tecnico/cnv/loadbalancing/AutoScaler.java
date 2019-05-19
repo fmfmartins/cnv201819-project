@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.Date;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 import java.io.IOException;
 
@@ -49,11 +51,13 @@ public final class AutoScaler {
     //ConcurrentHashMap runningInstances <PublicDNS, EC2Instance>
     private static ConcurrentHashMap<String, EC2Instance> mapOfInstances = new ConcurrentHashMap<String, EC2Instance>();
     private static boolean executingAction;
+
     int MIN_INSTANCES = 1;
     int MAX_INSTANCES = 3;
 
     private static final AutoScaler INSTANCE = new AutoScaler();
     private static AmazonEC2 ec2;
+    private static final long MAX_INSTANCE_WORKLOAD = 10000000000L;
     private static AmazonCloudWatch cloudWatch;
     
 
@@ -197,10 +201,18 @@ public final class AutoScaler {
                 try{
                     HttpURLConnection con = (HttpURLConnection) url.openConnection();
                     con.setRequestMethod("GET");
+                    con.setConnectTimeout(4000);
                     int responseCode = con.getResponseCode();
-                    System.out.println("Instances State: OK");
+                    BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String response = rd.readLine();
+                    if(response.equals("test ok")){
+                        System.out.println("Instance State: OK");
+                    } else {
+                        System.out.println("Something wrong");
+                    }
+                    
                 } catch(IOException e){
-                    System.out.println("Instances State: DOWN");
+                    System.out.println("Instance State: DOWN");
                     System.out.println("Instance was down! It has been removed");
                     mapOfInstances.remove(publicDNSName);
                     return;
@@ -263,12 +275,15 @@ public final class AutoScaler {
         }
         
         
-
         //checkInstancesState();
         boolean wait = true;
         while(wait){
             System.in.read();
             wait = false;
         }   
+    }
+    
+    public void checkInstanceMetrics(){
+        
     }
 }

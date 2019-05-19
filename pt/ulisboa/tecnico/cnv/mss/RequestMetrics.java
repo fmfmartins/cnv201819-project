@@ -34,6 +34,8 @@ public class RequestMetrics {
 	private String s;
     private String i;
 
+
+    private long estimatedCost;
     private long weight;
 	
 	private long bbCount;
@@ -50,6 +52,16 @@ public class RequestMetrics {
         this.timestamp = new Date();
         this.instanceID = instanceID;
     }
+
+    @DynamoDBAttribute
+    public long getEstimatedCost() {
+        return estimatedCost;
+    }
+
+    public void setEstimatedCost(long estimatedCost) {
+        this.estimatedCost = estimatedCost;
+    }
+
 
     @DynamoDBAttribute(attributeName="instance_id")
     public String getInstanceID(){
@@ -87,7 +99,7 @@ public class RequestMetrics {
         this.i = imageName;
     }
 
-	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i){
+	public void setParams(int w, int h, int x0, int x1, int y0, int y1, int xS, int yS, String s, String i, Long cost){
 		this.w = w;
 		this.h = h;
 		this.x0 = x0;
@@ -97,7 +109,8 @@ public class RequestMetrics {
 		this.xS = xS;
 		this.yS = yS;
 		this.s = s;
-		this.i = i;
+        this.i = i;
+        this.estimatedCost = cost;
 	}
 
 	public void incrLoadCount(int incr){

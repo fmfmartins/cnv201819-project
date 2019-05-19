@@ -168,8 +168,10 @@ public class LoadBalancer {
 			//loadBalancer.addRequest(DNSName,params);
 
 			//System.out.println("CONFIG: " + Config.INSTANCE_DNS_TMP);
+
+			final String newQuery = "/climb?" + query + "&cost=" + params.getCost();
 		
-			URL url = new URL("http://" + Config.INSTANCE_DNS_TMP + t.getRequestURI().toString());
+			URL url = new URL("http://" + Config.INSTANCE_DNS_TMP + newQuery);
 			
 			System.out.println("Sending request to -> " + url.toString());
             HttpURLConnection con = (HttpURLConnection) url.openConnection();

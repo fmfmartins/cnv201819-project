@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.lang.Thread.*;
+import java.util.Arrays;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -142,16 +143,20 @@ public class WebServer {
 
 			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]), Integer.parseInt(args[7]),
 					Integer.parseInt(args[9]), Integer.parseInt(args[11]), Integer.parseInt(args[13]), Integer.parseInt(args[15]),
-					args[17], args[19]);
+					args[17], args[19], Long.parseLong(args[21]));
 
 			rms.metricsStorage.put(Thread.currentThread().getId(), metrics);
 
+			System.out.println("EstimatedCost -> " + metrics.getEstimatedCost());
+
 			//rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
+
+			final String[] solverArgs = Arrays.copyOfRange(args, 0, 20);
 
 			SolverArgumentParser ap = null;
 			
 			try {
-				ap = new SolverArgumentParser(args);
+				ap = new SolverArgumentParser(solverArgs);
 			} catch (Exception e){
 				System.out.println(e.getMessage());
 			}
