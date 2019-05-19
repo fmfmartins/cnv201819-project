@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.cnv.loadbalancing;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.Date;
@@ -264,7 +265,9 @@ public final class AutoScaler {
 
         //checkInstancesState();
 
-        for(String publicDNS : mapOfInstances.keySet()){
+        checkInstanceWorkload();
+
+        /*for(String publicDNS : mapOfInstances.keySet()){
             System.out.println(mapOfInstances.get(publicDNS));
             while(AutoScaler.executingAction){
                 System.out.println("Execution Action (DESTROY) -> " + AutoScaler.executingAction);
@@ -272,7 +275,7 @@ public final class AutoScaler {
             }
             destroyEC2Instance(publicDNS);
             System.out.println("Instance " + publicDNS + " Destroyed!");   
-        }
+        }*/
         
         
         //checkInstancesState();
@@ -283,7 +286,33 @@ public final class AutoScaler {
         }   
     }
     
-    public void checkInstanceMetrics(){
+    public static synchronized void checkInstanceWorkload(){
+        long totalSystemWorkload = 0;
+        long instanceWorkLoad = 0;
+        long minWorkLoad = 0;
         
+        EC2Instance minWorkLoadInstance = null;
+
+        for(String dnsName : mapOfInstances.keySet()){
+            long instanceLoad = 0;
+            System.out.println("Number of Instances Running = " + mapOfInstances.size());
+            System.out.println("Instance DNS: " + dnsName);
+            
+            instanceWorkLoad = LoadBalancer.instancesCost.get(dnsName);
+            totalSystemWorkload += instanceWorkLoad;
+            if(minWorkLoadInstance == null || instanceLoad < minWorkLoad ){
+                minWorkLoad = instanceLoad;
+                minWorkLoadInstance = mapOfInstances.get(dnsName);
+            }
+        }
+
+        System.out.println("Total System Workload = " + totalSystemWorkload);
+
+        if((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.8){
+            System.out.println("SHOULD CREATE NEW INSTANCE");
+        } else {
+            System.out.println("SHOULD KILL AN INSTANCE");
+        }
+
     }
 }

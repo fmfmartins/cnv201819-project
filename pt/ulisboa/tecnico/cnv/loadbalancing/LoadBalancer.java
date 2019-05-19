@@ -67,8 +67,8 @@ public class LoadBalancer {
 	private static final int port = 8000;
 
     //Hashmap to save the future instances and requests running on them
-    private static ConcurrentHashMap<String,ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String,ArrayList<Params>>();
-	private static ConcurrentHashMap<String,Long> instancesCost= new ConcurrentHashMap<String,Long>();	
+    static ConcurrentHashMap<String,ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String,ArrayList<Params>>();
+	static ConcurrentHashMap<String,Long> instancesCost= new ConcurrentHashMap<String,Long>();	
 
 	//Test main class
 	public static void main(String[] args) throws Exception{
