@@ -372,11 +372,11 @@ public class LoadBalancer {
             return (long) (totalWeight / dbMetrics.size());
         } else {
             // NEED TO DECIDE ON UNKNOWN COST
-            return -1;
+            return 1;
         }
     }
 
-    
+
 
     public static long getEstimatedCost(Params request) {
         System.out.println("getEstimatedCost");
