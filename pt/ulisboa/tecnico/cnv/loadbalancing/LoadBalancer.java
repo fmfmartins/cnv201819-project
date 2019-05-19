@@ -376,6 +376,8 @@ public class LoadBalancer {
         }
     }
 
+    
+
     public static long getEstimatedCost(Params request) {
         System.out.println("getEstimatedCost");
         long eCost = -1;

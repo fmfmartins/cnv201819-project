@@ -57,11 +57,11 @@ public class AutoScaler {
     static int STARTUP_DELAY = 10000;
 
     static int MIN_INSTANCES = 1;
-    static int MAX_INSTANCES = 5;
+    static int MAX_INSTANCES = 15;
 
     static AutoScaler autoscaler;
     static AmazonEC2 ec2;
-    static final long MAX_INSTANCE_WORKLOAD = 100000000L;
+    static final long MAX_INSTANCE_WORKLOAD = 30000000000L;
 
     static AmazonCloudWatch cloudWatch;
 
