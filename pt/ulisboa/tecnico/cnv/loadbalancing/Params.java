@@ -20,16 +20,16 @@ public class Params{
 
         public Params(String[] params){
             if(params.length==10){
-                    w=params[0].split("=")[1];
-                    h=params[1].split("=")[1];
-                    x0=params[2].split("=")[1];
-                    x1=params[3].split("=")[1];
-                    y0=params[4].split("=")[1];
-                    y1=params[5].split("=")[1];
-                    xs=params[6].split("=")[1];
-                    ys=params[7].split("=")[1];
-                    algorithm=params[8].split("=")[1];
-                    image=params[9].split("=")[1];
+                    this.w=params[0].split("=")[1];
+                    this.h=params[1].split("=")[1];
+                    this.x0=params[2].split("=")[1];
+                    this.x1=params[3].split("=")[1];
+                    this.y0=params[4].split("=")[1];
+                    this.y1=params[5].split("=")[1];
+                    this.xs=params[6].split("=")[1];
+                    this.ys=params[7].split("=")[1];
+                    this.algorithm=params[8].split("=")[1];
+                    this.image=params[9].split("=")[1];
             }
 
             else{
@@ -42,43 +42,43 @@ public class Params{
         }
 
         public String getW(){
-            return w;
+            return this.w;
         }
 
         public String getH(){
-             return h;
+             return this.h;
         }
 
         public String getX0(){
-            return x0;
+            return this.x0;
         }
 
         public String getX1(){
-            return x1;
+            return this.x1;
         }
 
         public String getY0(){
-            return y0;
+            return this.y0;
         }
 
         public String getY1(){
-            return y1;
+            return this.y1;
         }
 
         public String getXS(){
-            return xs;
+            return this.xs;
         }
 
         public String getYS(){
-            return ys;
+            return this.ys;
         }
 
         public String getAlgorithm(){
-            return algorithm;
+            return this.algorithm;
         }
 
         public String getImage(){
-            return image;
+            return this.image;
         }
 
         public long getCost(){

@@ -69,11 +69,9 @@ public class LoadBalancer {
 	// Port	
 	private static final int port = 8000;
 
-    //Hashset to save the future instances
-    private ArrayList<String> instancesRunning = new ArrayList<String>();
-	
-	//Hashmap that stores the requests that instances are doing
-	//Map<String,Map<String,int>> requestsOnInstances = new Map<String,Map<String,int>>();
+    //Hashmap to save the future instances and requests running on them
+    private static ConcurrentHashMap<String,ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String,ArrayList<Params>>();
+	private static ConcurrentHashMap<String,Long> instancesCost= new ConcurrentHashMap<String,Long>();	
 
 	//Test main class
 	public static void main(String[] args){
@@ -97,7 +95,8 @@ public class LoadBalancer {
 		}
         
 	}
-
+	
+	// Get LoadBalancer port
 	public static int getPort(){
 		return port;
 	}
@@ -106,7 +105,19 @@ public class LoadBalancer {
 
 		int port = LoadBalancer.getInstance().getPort();
 
+		initCache();
 
+		final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
+	
+		load_balancer.createContext("/climb", new SendQueryHandler());
+		load_balancer.createContext("/test", new MyTestHandler());
+		load_balancer.setExecutor(Executors.newCachedThreadPool());
+		load_balancer.start();
+		System.out.println(load_balancer.getAddress().toString());
+
+	}
+
+	private void initCache(){
 		cache = new ConcurrentHashMap();
 		cache.put(HeightMaps.IMAGE_1, new LinkedList<RequestMetrics>());
 		cache.put(HeightMaps.IMAGE_2, new LinkedList<RequestMetrics>());
@@ -121,79 +132,68 @@ public class LoadBalancer {
 		cache.put(HeightMaps.IMAGE_11, new LinkedList<RequestMetrics>());
 		cache.put(HeightMaps.IMAGE_12, new LinkedList<RequestMetrics>());
 		cache.put(HeightMaps.IMAGE_13, new LinkedList<RequestMetrics>());
-
-        final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
-		
-        load_balancer.createContext("/climb", new SendQueryHandler());
-        load_balancer.createContext("/test", new MyTestHandler());
-        // be aware! infinite pool of threads!
-        load_balancer.setExecutor(Executors.newCachedThreadPool());
-        load_balancer.start();
-		System.out.println(load_balancer.getAddress().toString());
-
 	}
 
 	//New instance running
-	public void AddInstance(String dnsName){
- 		synchronized(instancesRunning){
-			instancesRunning.add(dnsName);
-		}
-	
+	public static void AddInstance(String dnsName){
+ 		instancesRunning.put(dnsName,new ArrayList<Params>());
+		instancesCost.put(dnsName,new Long(0));
 	}
 
 	//Instance off
-	public void RemoveInstance(String dnsName){
-		synchronized(instancesRunning){
-			instancesRunning.remove(dnsName);
-		}
+	public static void RemoveInstance(String dnsName){
+		instancesRunning.remove(dnsName);
+		instancesCost.remove(dnsName);
 	}
 
-	/*
-	//Choose instance to redirect the request
+	
+	// Choose instance to redirect the request
 	public static String ChoosesInstance(){
+		
+		String DNSName="";
+		long actualCost=-1;
+
+		// Get instance with lower cost
+		for(Map.Entry<String, Long> instance : instancesCost.entrySet()){
+			long instanceCost=instance.getValue();
+			if(instanceCost<actualCost || actualCost==-1){
+				actualCost=instanceCost;
+				DNSName=instance.getKey();
+			}
+		
+		}
+		return DNSName;
+								
 	}
 
-	public static String getInstancePublicDnsName(String instanceId){
-	
-		for (Reservation reservation : reservations) {
-      			for (Instance instance : reservation.getInstances()) {
-        			if (instance.getInstanceId().equals(instanceId)){
-          				return instance.getPublicDnsName();
-      				}
-    		}
-    		return null;
-	
-	}*/
-
-	/*public static void AddRequestToInstance(String instanceId,String requestWeight){
-
-		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
+	// Add request to instance
+	public static void addRequest(String dnsName,Params params){
+		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+		requestsOnInstance.add(params);
+		// Update cost of instance
+		long cost=instancesCost.get(dnsName);
+		instancesCost.put(dnsName,cost+params.getCost());
 		
-		int value = requests.get(requestWeight)+1;
-		
-		requests.put(requestWeight,value);
-	
 	}
 
-	public static void RemoveRequestFromInstance(String intanceId, String requestWeight){
-
-		Map<String,Map<String,Map<String,int>> requests = this.requetsOnInstance.get(instanceId);
-
-                int value = requests.get(requestWeight)-1;
-
-                requests.put(requestWeight,value);
-
-	}*/
-
-      
-    static class MyTestHandler implements HttpHandler {
-        @Override
+	// Remove request from instance
+	public static void removeRequest(String dnsName, Params params){
+		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+               	requestsOnInstance.remove(params);
+		// Update cost of instance
+		long cost=instancesCost.get(dnsName);
+		instancesCost.put(dnsName,cost-params.getCost());
+	}
+       
+	// Handler test
+    	static class MyTestHandler implements HttpHandler {
+        	@Override
 		public void handle(final HttpExchange t) throws IOException {
-            final Headers headers = t.getResponseHeaders();
+            		final Headers headers = t.getResponseHeaders();
                         
-            final String query = t.getRequestURI().getQuery();
+            		final String query = t.getRequestURI().getQuery();
 
-            System.out.println("> Query:\t" + query);
+            		System.out.println("> Query:\t" + query);
                         
 			String response = "test ok";
 				
@@ -216,31 +216,34 @@ public class LoadBalancer {
 	static class SendQueryHandler implements HttpHandler{
 		@Override
 		public void handle(final HttpExchange t) throws IOException{
-            final Headers headers = t.getResponseHeaders();
+            		final Headers headers = t.getResponseHeaders();
                        
-            System.out.println("----------NEW REQUEST----------\t");
+            		System.out.println("----------NEW REQUEST----------\t");
             
-            final String query = t.getRequestURI().getQuery();
+            		final String query = t.getRequestURI().getQuery();
 			
-            System.out.println("> Headers:\t" + query);
-            System.out.println("> Query:\t" + query);
+            		System.out.println("> Headers:\t" + query);
+            		System.out.println("> Query:\t" + query);
 			System.out.println("> Request:\t" + t.getRequestURI().toString());
 			
 			
 			//Create a params object
 			String[] listParams = query.split("&");
 			Params params = new Params(listParams);
-
 			processRequest(params);
 
 			System.out.println("Request Cost = " + params.getCost());
 			
+			// Get DNSName
 			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
-			//String DNSName = loadBalancer.chooseInstance()
-
+			//String DNSName = loadBalancer.chooseInstance(params)
+			
+			// Add request to instance
+			//loadBalancer.addRequest(DNSName,params);
+			
 			//DNS name
-            //String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
-            String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";
+			//String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
+			String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";	
 		
             URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -259,7 +262,7 @@ public class LoadBalancer {
 				bos.write(buffer, 0, len);
 		 	}
 		
-		
+	
 			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
 			headers.add("Content-Type","image/png");
             headers.add("Access-Control-Allow-Origin", "*");
@@ -280,7 +283,7 @@ public class LoadBalancer {
     public static long getEstimatedCost(Params request){
 		System.out.println("getEstimatedCost");
 		long eCost = -1;
-        List<RequestMetrics> dbMetrics = null;
+        	List<RequestMetrics> dbMetrics = null;
 		dbMetrics = getSimilarMetricsFromDB(request);
 		if(dbMetrics == null){
 			System.out.println("Empty set-> size: " + dbMetrics.size());
