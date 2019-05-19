@@ -64,8 +64,7 @@ public class LoadBalancer {
 	private static final LoadBalancer loadBalancer = new LoadBalancer();
 	// Cache where the key is the image name
 	private static Map<String, List<RequestMetrics>> cache;
-	
-	
+		
 	// Port	
 	private static final int port = 8000;
 
@@ -148,7 +147,7 @@ public class LoadBalancer {
 
 	
 	// Choose instance to redirect the request
-	public static String ChoosesInstance(){
+	public static String chooseInstance(){
 		
 		String DNSName="";
 		long actualCost=-1;
@@ -171,7 +170,7 @@ public class LoadBalancer {
 		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
 		requestsOnInstance.add(params);
 		// Update cost of instance
-		long cost=instancesCost.get(dnsName);
+		Long cost = instancesCost.get(dnsName);
 		instancesCost.put(dnsName,cost+params.getCost());
 		
 	}
@@ -181,7 +180,7 @@ public class LoadBalancer {
 		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
                	requestsOnInstance.remove(params);
 		// Update cost of instance
-		long cost=instancesCost.get(dnsName);
+		Long cost = instancesCost.get(dnsName);
 		instancesCost.put(dnsName,cost-params.getCost());
 	}
        
@@ -235,15 +234,15 @@ public class LoadBalancer {
 			System.out.println("Request Cost = " + params.getCost());
 			
 			// Get DNSName
-			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
-			//String DNSName = loadBalancer.chooseInstance(params)
+			LoadBalancer loadBalancer = LoadBalancer.getInstance();
+			String DNSName = loadBalancer.chooseInstance()+":8000"; //Verificar se e possivel saber o porto das instancias atraves do autoscaler
 			
 			// Add request to instance
-			//loadBalancer.addRequest(DNSName,params);
+			loadBalancer.addRequest(DNSName,params);
 			
 			//DNS name
 			//String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
-			String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";	
+			//String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";	
 		
             URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -252,6 +251,8 @@ public class LoadBalancer {
             con.setRequestMethod("GET");
 			//Get response        
             int responseCode = con.getResponseCode();
+			System.out.println("> Response received from instance: \t" +  String.valueOf(responseCode));
+
 			InputStream response = con.getInputStream();
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			byte[] buffer = new byte[1024];
@@ -273,7 +274,7 @@ public class LoadBalancer {
             os.write(bos.toByteArray());
 			os.close();
 			
-			System.out.println("> Response \t:" +  String.valueOf(responseCode));			
+			System.out.println("> Response sent:\t");			
 			System.out.println("-------------------------------\t");
         }
     } 
@@ -291,7 +292,7 @@ public class LoadBalancer {
 			for(RequestMetrics metric : dbMetrics){
 				addToCache(metric);
 			}
-			System.out.println("CachedList size -> " + cachedMetrics.size());
+			System.out.println("CachedList size -> " + cache.size());
 			eCost = computeAverageCost(dbMetrics);
 		}
         return eCost;
