@@ -91,5 +91,9 @@ runLB() {
 	java pt.ulisboa.tecnico.cnv.loadbalancing.LoadBalancer
 }
 
+runAS() {
+	java pt.ulisboa.tecnico.cnv.loadbalancing.AutoScaler
+}
+
 
 

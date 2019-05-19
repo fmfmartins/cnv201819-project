@@ -1,14 +1,15 @@
-
+package pt.ulisboa.tecnico.cnv.loadbalancing;
 
 public class EC2Instance {
+
     private String publicDNS;
     private String instanceID;
     
-    public void setPublicDNC(String publicDNS){
+    public void setPublicDNS(String publicDNS){
         this.publicDNS = publicDNS;
     }
 
-    public String getPublicDNC(){
+    public String getPublicDNS(){
         return this.publicDNS;
     }
 
@@ -18,6 +19,15 @@ public class EC2Instance {
 
     public String getInstanceID(){
         return this.instanceID;
+    }
+
+    @Override
+    public String toString(){
+        String s = "";
+        s += "\n=========== EC2 INSTANCE ===========\n";
+        s += "ID: " + this.instanceID + "\n";
+        s += "Public DNS: " + this.publicDNS + "\n";
+        return s;
     }
 
 }

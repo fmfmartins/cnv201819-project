@@ -134,13 +134,13 @@ public class LoadBalancer {
 	}
 
 	//New instance running
-	public static void AddInstance(String dnsName){
+	public static void addInstance(String dnsName){
  		instancesRunning.put(dnsName,new ArrayList<Params>());
 		instancesCost.put(dnsName,new Long(0));
 	}
 
 	//Instance off
-	public static void RemoveInstance(String dnsName){
+	public static void removeInstance(String dnsName){
 		instancesRunning.remove(dnsName);
 		instancesCost.remove(dnsName);
 	}
@@ -234,17 +234,17 @@ public class LoadBalancer {
 			System.out.println("Request Cost = " + params.getCost());
 			
 			// Get DNSName
-			LoadBalancer loadBalancer = LoadBalancer.getInstance();
-			String DNSName = loadBalancer.chooseInstance()+":8000"; //Verificar se e possivel saber o porto das instancias atraves do autoscaler
+			//LoadBalancer loadBalancer = LoadBalancer.getInstance();
+			//String DNSName = loadBalancer.chooseInstance()+":8000"; //Verificar se e possivel saber o porto das instancias atraves do autoscaler
 			
 			// Add request to instance
-			loadBalancer.addRequest(DNSName,params);
-			
-			//DNS name
-			//String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
-			//String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";	
+			//loadBalancer.addRequest(DNSName,params);
+
+			//System.out.println("CONFIG: " + Config.INSTANCE_DNS_TMP);
 		
-            URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
+			URL url = new URL("http://" + Config.INSTANCE_DNS_TMP + t.getRequestURI().toString());
+			
+			System.out.println("Sending request to -> " + url.toString());
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             
             // Send request
@@ -284,7 +284,7 @@ public class LoadBalancer {
     public static long getEstimatedCost(Params request){
 		System.out.println("getEstimatedCost");
 		long eCost = -1;
-        	List<RequestMetrics> dbMetrics = null;
+        List<RequestMetrics> dbMetrics = null;
 		dbMetrics = getSimilarMetricsFromDB(request);
 		if(dbMetrics == null){
 			System.out.println("Empty set-> size: " + dbMetrics.size());
@@ -292,7 +292,6 @@ public class LoadBalancer {
 			for(RequestMetrics metric : dbMetrics){
 				addToCache(metric);
 			}
-			System.out.println("CachedList size -> " + cache.size());
 			eCost = computeAverageCost(dbMetrics);
 		}
         return eCost;
@@ -317,7 +316,7 @@ public class LoadBalancer {
 			queryParams.put(":max_start_y", new AttributeValue().withN(Integer.toString(computeUpperBound(Integer.parseInt(request.getYS())))));
 			queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
 			queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
-
+			
 			DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
 				.withKeyConditionExpression("image_name = :image_name")
 				.withFilterExpression("solver_algorithm = :solver_algorithm"

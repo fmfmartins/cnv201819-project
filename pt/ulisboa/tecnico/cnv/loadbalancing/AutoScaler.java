@@ -1,3 +1,4 @@
+package pt.ulisboa.tecnico.cnv.loadbalancing;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +48,7 @@ public final class AutoScaler {
 
     //ConcurrentHashMap runningInstances <PublicDNS, EC2Instance>
     private static ConcurrentHashMap<String, EC2Instance> mapOfInstances = new ConcurrentHashMap<String, EC2Instance>();
-    boolean executingAction;
+    private static boolean executingAction;
     int MIN_INSTANCES = 1;
     int MAX_INSTANCES = 3;
 
@@ -80,40 +81,73 @@ public final class AutoScaler {
                 System.out.println("Starting a new instance.");
                 RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
                 
-                runInstancesRequest.withImageId("ami-045334ddb031a6bd3")
-                               .withInstanceType("t2.micro")
+                runInstancesRequest.withImageId(Config.AMI_ID)
+                               .withInstanceType(Config.INSTANCE_TYPE)
                                .withMinCount(1)
                                .withMaxCount(1)
-                               .withKeyName("KEY_CNV")
-                               .withSecurityGroups("launch-wizard-7");
+                               .withKeyName(Config.KEY_NAME)
+                               .withSecurityGroups(Config.SEC_GROUP);
                 
                 RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
                 System.out.println("Instance started");
 
                 EC2Instance newEC2Instance = new EC2Instance();
 
-                DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
-                List<Reservation> reservations = describeInstancesRequest.getReservations();
+                
                 
                 String newInstanceId = runInstancesResult.getReservation().getInstances()
-                                      .get(0).getInstanceId();
+                                        .get(0).getInstanceId();
 
-                newEC2Instance.setInstanceID(newInstanceId);
-                
-                String publicDNS;
-                String imageID;
-                for (Reservation reservation : reservations) {
-                    for (Instance inst : reservation.getInstances()) {
-                        publicDNS = inst.getPublicDnsName();
-                        imageID = inst.getInstanceId();
-                        if(newInstanceId.equals(imageID)){
-                            newEC2Instance.setPublicDNC(publicDNS);
-                            mapOfInstances.put(publicDNS, newEC2Instance);
-                            EC2Instance eC2Instance = mapOfInstances.get(publicDNS);
-                            System.out.println(eC2Instance.getInstanceID());
-                        }    
+                String newInstanceState = runInstancesResult.getReservation().getInstances()
+                                        .get(0).getState().getName();
+
+                String newInstanceDNS = "no dns assigned";
+
+                while(!newInstanceState.equals("running")){
+                    DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
+                    List<Reservation> reservations = describeInstancesRequest.getReservations();
+                    for(Reservation reservation : reservations){
+                        for(Instance instance : reservation.getInstances()){
+                            if(instance.getInstanceId().equals(newInstanceId)){
+                                newInstanceState = instance.getState().getName();
+                                newInstanceDNS = instance.getPublicDnsName();
+                                System.out.println("newInstanceState -> " + newInstanceState);
+                                Thread.sleep(5000);
+                            }
+                        }
                     }
                 }
+
+
+                newEC2Instance.setInstanceID(newInstanceId);
+                newEC2Instance.setPublicDNS(newInstanceDNS);
+
+                System.out.println(newEC2Instance);
+
+                synchronized(mapOfInstances){
+                    mapOfInstances.put(newEC2Instance.getPublicDNS(), newEC2Instance);
+                    System.out.println("New instance : " + newEC2Instance.getPublicDNS() + " added!");
+                }
+
+                AutoScaler.executingAction = false;
+                
+                /*String publicDNS;
+                String instanceID;
+                synchronized(mapOfInstances){
+                    for (Reservation reservation : reservations) {
+                        for (Instance inst : reservation.getInstances()) {
+                            publicDNS = inst.getPublicDnsName();
+                            instanceID = inst.getInstanceId();
+                            if(newInstanceId.equals(imageID)){
+                                newEC2Instance.setPublicDNS(publicDNS);
+                                mapOfInstances.put(publicDNS, newEC2Instance);
+                                EC2Instance eC2Instance = mapOfInstances.get(publicDNS);
+                                System.out.println(eC2Instance.getInstanceID());
+                            }    
+                        }
+                    }
+                }*/
+                
                 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -122,6 +156,7 @@ public final class AutoScaler {
     }
 
     public static void spawnEC2Instance(){
+        AutoScaler.executingAction = true;
         Thread spawnEC2InstanceThread = new SpawnThread();
         spawnEC2InstanceThread.start();
     }
@@ -134,7 +169,8 @@ public final class AutoScaler {
                 TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
                 termInstanceReq.withInstanceIds(mapOfInstances.get(publicDNS).getInstanceID());
                 ec2.terminateInstances(termInstanceReq);
-                
+
+                AutoScaler.executingAction = false;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -142,7 +178,10 @@ public final class AutoScaler {
     }
 
     public static void destroyEC2Instance(String publicDNS){
+        AutoScaler.executingAction = true;
+
         DestroyThread destroyEC2Instance = new DestroyThread();
+        System.out.println("destroyEC2 -> " + publicDNS);
         destroyEC2Instance.run(publicDNS);
         //mapOfInstances.remove(publicDNS);
         //System.out.println("Instance: "+ publicDNS +" removed");
@@ -199,20 +238,37 @@ public final class AutoScaler {
         System.out.println("===========================================");
 
         init();
-        
-        spawnEC2Instance();
-        Thread.sleep(30000);
-        checkInstancesState();
-        Thread.sleep(30000);
-        for(String publicDNS : mapOfInstances.keySet()){
-            destroyEC2Instance(publicDNS);
-            System.out.println("Instance: " + mapOfInstances.get(publicDNS).getInstanceID());
+
+        if(!AutoScaler.executingAction){
+            spawnEC2Instance();
         }
-        Thread.sleep(60000);
-        checkInstancesState();
-        System.out.println("Instance Destroyed");
-        while(true){
-            
+
+        while(AutoScaler.executingAction){
+            System.out.println("Execution Action (SPAWN) -> " + AutoScaler.executingAction);
+            Thread.sleep(5000);
+        }
+        
+        
+
+        //checkInstancesState();
+
+        for(String publicDNS : mapOfInstances.keySet()){
+            System.out.println(mapOfInstances.get(publicDNS));
+            while(AutoScaler.executingAction){
+                System.out.println("Execution Action (DESTROY) -> " + AutoScaler.executingAction);
+                Thread.sleep(5000);
+            }
+            destroyEC2Instance(publicDNS);
+            System.out.println("Instance " + publicDNS + " Destroyed!");   
+        }
+        
+        
+
+        //checkInstancesState();
+        boolean wait = true;
+        while(wait){
+            System.in.read();
+            wait = false;
         }   
     }
 }
