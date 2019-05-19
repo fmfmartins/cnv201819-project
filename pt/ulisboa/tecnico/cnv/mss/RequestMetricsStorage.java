@@ -9,25 +9,14 @@ public class RequestMetricsStorage {
 
     private static RequestMetricsStorage instance;
 
-    private RequestMetricsStorage(){}
+    private RequestMetricsStorage() {
+    }
 
-    public static synchronized RequestMetricsStorage getInstance(){
-        if(instance == null){
+    public static synchronized RequestMetricsStorage getInstance() {
+        if (instance == null) {
             instance = new RequestMetricsStorage();
         }
         return instance;
     }
-
-    /*public static synchronized void addRequestMetrics(RequestMetrics metrics){	
-        metricsStorage.put(metrics.getThreadID(), metrics);
-    }
-
-    public static synchronized RequestMetrics getRequestMetrics(long threadID){
-	    return metricsStorage.get(threadID);
-    }
-
-    public static synchronized RequestMetrics getAndRemoveRequestMetrics(long threadID){
-	    return metricsStorage.remove(threadID);
-    }*/
 
 }

@@ -61,16 +61,13 @@ public class AmazonDynamoDBHelper {
     private static String TABLENAME = "statistics";
 
     /*
-     * Before running the code:
-     *      Fill in your AWS access credentials in the provided credentials
-     *      file template, and be sure to move the file to the default location
-     *      (~/.aws/credentials) where the sample code will load the
-     *      credentials from.
-     *      https://console.aws.amazon.com/iam/home?#security_credential
+     * Before running the code: Fill in your AWS access credentials in the provided
+     * credentials file template, and be sure to move the file to the default
+     * location (~/.aws/credentials) where the sample code will load the credentials
+     * from. https://console.aws.amazon.com/iam/home?#security_credential
      *
-     * WARNING:
-     *      To avoid accidental leakage of your credentials, DO NOT keep
-     *      the credentials file in your source directory.
+     * WARNING: To avoid accidental leakage of your credentials, DO NOT keep the
+     * credentials file in your source directory.
      */
 
     static AmazonDynamoDB dynamoDB;
@@ -80,9 +77,9 @@ public class AmazonDynamoDBHelper {
     /**
      * The only information needed to create a client are security credentials
      * consisting of the AWS Access Key ID and Secret Access Key. All other
-     * configuration, such as the service endpoints, are performed
-     * automatically. Client parameters, such as proxies, can be specified in an
-     * optional ClientConfiguration object when constructing a client.
+     * configuration, such as the service endpoints, are performed automatically.
+     * Client parameters, such as proxies, can be specified in an optional
+     * ClientConfiguration object when constructing a client.
      *
      * @see com.amazonaws.auth.BasicAWSCredentials
      * @see com.amazonaws.auth.ProfilesConfigFile
@@ -90,32 +87,28 @@ public class AmazonDynamoDBHelper {
      */
     private static void init() throws Exception {
         /*
-         * The ProfileCredentialsProvider will return your [default]
-         * credential profile by reading from the credentials file located at
-         * (~/.aws/credentials).
+         * The ProfileCredentialsProvider will return your [default] credential profile
+         * by reading from the credentials file located at (~/.aws/credentials).
          */
         ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
         try {
             credentialsProvider.getCredentials();
         } catch (Exception e) {
-            throw new AmazonClientException(
-                    "Cannot load the credentials from the credential profiles file. " +
-                    "Please make sure that your credentials file is at the correct " +
-                    "location (~/.aws/credentials), and is in valid format.",
-                    e);
+            throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
+                    + "Please make sure that your credentials file is at the correct "
+                    + "location (~/.aws/credentials), and is in valid format.", e);
         }
-        dynamoDB = AmazonDynamoDBClientBuilder.standard()
-            .withCredentials(credentialsProvider)
-            .withRegion("eu-west-3")
-            .build();
+        dynamoDB = AmazonDynamoDBClientBuilder.standard().withCredentials(credentialsProvider).withRegion("eu-west-3")
+                .build();
 
-        if(mapper == null){
+        if (mapper == null) {
             mapper = new DynamoDBMapper(dynamoDB);
         }
 
     }
 
-    public static List<RequestMetrics> query(Class itemClass, DynamoDBQueryExpression queryExpression) throws Exception{
+    public static List<RequestMetrics> query(Class itemClass, DynamoDBQueryExpression queryExpression)
+            throws Exception {
         init();
         return mapper.query(itemClass, queryExpression);
     }
@@ -130,16 +123,17 @@ public class AmazonDynamoDBHelper {
             keySchema.add(new KeySchemaElement().withAttributeName("timestamp").withKeyType(KeyType.RANGE));
 
             ArrayList<AttributeDefinition> attributeDefinitions = new ArrayList<AttributeDefinition>();
-            attributeDefinitions
-                .add(new AttributeDefinition().withAttributeName("image_name").withAttributeType(ScalarAttributeType.S));
-            attributeDefinitions
-                .add(new AttributeDefinition().withAttributeName("timestamp").withAttributeType(ScalarAttributeType.S));
+            attributeDefinitions.add(
+                    new AttributeDefinition().withAttributeName("image_name").withAttributeType(ScalarAttributeType.S));
+            attributeDefinitions.add(
+                    new AttributeDefinition().withAttributeName("timestamp").withAttributeType(ScalarAttributeType.S));
 
-            // Create a table with a primary hash key named 'request_id', which holds a string
-            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME)
-                .withKeySchema(keySchema)
-                .withAttributeDefinitions(attributeDefinitions)
-                .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
+            // Create a table with a primary hash key named 'request_id', which holds a
+            // string
+            CreateTableRequest createTableRequest = new CreateTableRequest()
+                    .withTableName(AmazonDynamoDBHelper.TABLENAME).withKeySchema(keySchema)
+                    .withAttributeDefinitions(attributeDefinitions).withProvisionedThroughput(
+                            new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
 
             // Create table if it does not exist yet
             TableUtils.createTableIfNotExists(dynamoDB, createTableRequest);
@@ -147,19 +141,10 @@ public class AmazonDynamoDBHelper {
             TableUtils.waitUntilActive(dynamoDB, AmazonDynamoDBHelper.TABLENAME);
 
             // Describe our new table
-            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(AmazonDynamoDBHelper.TABLENAME);
+            DescribeTableRequest describeTableRequest = new DescribeTableRequest()
+                    .withTableName(AmazonDynamoDBHelper.TABLENAME);
             TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
             System.out.println("Table Description: " + tableDescription);
-
-            /*Scan items for movies with a year attribute greater than 1985
-            HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
-            Condition condition = new Condition()
-                .withComparisonOperator(ComparisonOperator.GT.toString())
-                .withAttributeValueList(new AttributeValue().withN("1985"));
-            scanFilter.put("year", condition);
-            ScanRequest scanRequest = new ScanRequest(tableName).withScanFilter(scanFilter);
-            ScanResult scanResult = dynamoDB.scan(scanRequest);
-            System.out.println("Result: " + scanResult);*/
 
         } catch (AmazonServiceException ase) {
             System.out.println("Caught an AmazonServiceException, which means your request made it "
@@ -177,27 +162,8 @@ public class AmazonDynamoDBHelper {
         }
     }
 
-
     public static void uploadItem(RequestMetrics metrics) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
-        /*item.put("request_id", new AttributeValue().withS(metrics.getRequestID())));
-        item.put("width", new AttributeValue().withN(Integer.toString(metrics.getW())));
-        item.put("height", new AttributeValue().withN(Integer.toString(metrics.getH())));
-        item.put("upper_left_x", new AttributeValue().withN(Integer.toString(metrics.getX0())));
-        item.put("upper_left_y", new AttributeValue().withN(Integer.toString(metrics.getY0())));
-        item.put("lower_right_x", new AttributeValue().withN(Integer.toString(metrics.getX1())));
-        item.put("lower_right_y", new AttributeValue().withN(Integer.toString(metrics.getY1())));
-        item.put("start_x", new AttributeValue().withN(Integer.toString(metrics.getXS())));
-        item.put("start_y", new AttributeValue().withN(Integer.toString(metrics.getYS())));
-        item.put("solver_algorithm", new AttributeValue().withS(metrics.getAlgorithm()));
-        item.put("image_name", new AttributeValue().withS(metrics.getImage()));
-        item.put("basic_blocks", new AttributeValue().withN(Long.toString(metrics.getBbCount())));
-        item.put("load_instructions", new AttributeValue().withN(Long.toString(metrics.getLoadcount())));
-        item.put("store_instructions", new AttributeValue().withN(Long.toString(metrics.getStorecount())));
-        item.put("e_weight", new AttributeValue().withN(Long.toString(metrics.getWeight())));
-        PutItemRequest putItemRequest = new PutItemRequest(AmazonDynamoDBHelper.TABLENAME, item);
-        PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-        System.out.println("DynamoDB Metrics Upload Result: " + putItemResult);*/
         mapper.save(metrics);
     }
 }

@@ -38,21 +38,21 @@ public class WebServer {
 
 	public static void main(final String[] args) throws Exception {
 
-		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
-
+		// final HttpServer server = HttpServer.create(new
+		// InetSocketAddress("127.0.0.1", 8000), 0);
 
 		currentWorkload = 0;
 
-		Runnable r = new Runnable(){
-		
+		Runnable r = new Runnable() {
+
 			@Override
 			public void run() {
-				try{
+				try {
 					AmazonDynamoDBHelper.createTable();
-				} catch (Exception e){
+				} catch (Exception e) {
 					System.out.println(e.getMessage());
 				}
-				
+
 			}
 		};
 
@@ -77,14 +77,15 @@ public class WebServer {
 			final Headers headers = t.getResponseHeaders();
 
 			String response = "test ok";
-				
+
 			t.sendResponseHeaders(200, response.getBytes().length);
 
 			headers.add("Access-Control-Allow-Origin", "*");
 			headers.add("Access-Control-Allow-Credentials", "true");
 			headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
-			headers.add("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-	
+			headers.add("Access-Control-Allow-Headers",
+					"Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+
 			OutputStream os = t.getResponseBody();
 			os.write(response.getBytes());
 			os.close();
@@ -108,10 +109,8 @@ public class WebServer {
 			final String[] params = query.split("&");
 
 			/*
-			for(String p: params) {
-				System.out.println(p);
-			}
-			*/
+			 * for(String p: params) { System.out.println(p); }
+			 */
 
 			// Store as if it was a direct call to SolverMain.
 			final ArrayList<String> newArgs = new ArrayList<>();
@@ -121,9 +120,9 @@ public class WebServer {
 				newArgs.add(splitParam[1]);
 
 				/*
-				System.out.println("splitParam[0]: " + splitParam[0]);
-				System.out.println("splitParam[1]: " + splitParam[1]);
-				*/
+				 * System.out.println("splitParam[0]: " + splitParam[0]);
+				 * System.out.println("splitParam[1]: " + splitParam[1]);
+				 */
 			}
 
 			newArgs.add("-d");
@@ -131,40 +130,40 @@ public class WebServer {
 			// Store from ArrayList into regular String[].
 			final String[] args = new String[newArgs.size()];
 			int i = 0;
-			for(String arg: newArgs) {
+			for (String arg : newArgs) {
 				args[i] = arg;
 				i++;
 			}
 
-			
-			/*for(String ar : args) {
-				System.out.println("ar: " + ar);
-			} */
+			/*
+			 * for(String ar : args) { System.out.println("ar: " + ar); }
+			 */
 
 			// Store the request parameters
 
-			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId(), EC2MetadataUtils.getInstanceId());
+			RequestMetrics metrics = new RequestMetrics(Thread.currentThread().getId(),
+					EC2MetadataUtils.getInstanceId());
 
-			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]), Integer.parseInt(args[7]),
-					Integer.parseInt(args[9]), Integer.parseInt(args[11]), Integer.parseInt(args[13]), Integer.parseInt(args[15]),
-					args[17], args[19], Long.parseLong(args[21]));
+			metrics.setParams(Integer.parseInt(args[1]), Integer.parseInt(args[3]), Integer.parseInt(args[5]),
+					Integer.parseInt(args[7]), Integer.parseInt(args[9]), Integer.parseInt(args[11]),
+					Integer.parseInt(args[13]), Integer.parseInt(args[15]), args[17], args[19],
+					Long.parseLong(args[21]));
 
 			rms.metricsStorage.put(Thread.currentThread().getId(), metrics);
 
 			System.out.println("EstimatedCost -> " + metrics.getEstimatedCost());
 
-			
 			currentWorkload += metrics.getEstimatedCost();
 
-			//rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
+			// rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
 
 			final String[] solverArgs = Arrays.copyOfRange(args, 0, 20);
 
 			SolverArgumentParser ap = null;
-			
+
 			try {
 				ap = new SolverArgumentParser(solverArgs);
-			} catch (Exception e){
+			} catch (Exception e) {
 				System.out.println(e.getMessage());
 			}
 
@@ -183,7 +182,7 @@ public class WebServer {
 
 				final String imageName = s.toString();
 
-				if(ap.isDebugging()) {
+				if (ap.isDebugging()) {
 					System.out.println("> Image name: " + imageName);
 				}
 
@@ -200,11 +199,11 @@ public class WebServer {
 				e.printStackTrace();
 			}
 
-			//Output to file 
+			// Output to file
 
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			System.out.println(m);
-			//m.outputToFile();
+			// m.outputToFile();
 
 			// Send response to browser.
 			final Headers hdrs = t.getResponseHeaders();
@@ -216,7 +215,8 @@ public class WebServer {
 			hdrs.add("Access-Control-Allow-Origin", "*");
 			hdrs.add("Access-Control-Allow-Credentials", "true");
 			hdrs.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
-			hdrs.add("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+			hdrs.add("Access-Control-Allow-Headers",
+					"Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
 
 			final OutputStream os = t.getResponseBody();
 			Files.copy(responseFile.toPath(), os);
@@ -225,25 +225,22 @@ public class WebServer {
 
 			System.out.println("> Sent response to " + t.getRemoteAddress().toString());
 
-
-			/*URIBuilder builder = new URIBuilder();
-			builder.setScheme("http").setHost("www.google.com").setPath("/search")
-				.setParameter("q", "httpclient")
-				.setParameter("btnG", "Google Search")
-				.setParameter("aq", "f")
-				.setParameter("oq", "");
-			URI uri = builder.build();
-			HttpGet httpget = new HttpGet(uri);
-			System.out.println(httpget.getURI());*/
+			/*
+			 * URIBuilder builder = new URIBuilder();
+			 * builder.setScheme("http").setHost("www.google.com").setPath("/search")
+			 * .setParameter("q", "httpclient") .setParameter("btnG", "Google Search")
+			 * .setParameter("aq", "f") .setParameter("oq", ""); URI uri = builder.build();
+			 * HttpGet httpget = new HttpGet(uri); System.out.println(httpget.getURI());
+			 */
 
 			// Upload to amazon DynamoDB
-			try{
+			try {
 				long mWeight = MetricsCalculator.computeWeight(m);
-				//System.out.println("> mWeight : " + mWeight);
+				// System.out.println("> mWeight : " + mWeight);
 				m.setWeight(mWeight);
 				AmazonDynamoDBHelper.uploadItem(m);
 				System.out.println("> Metric upload success ");
-			} catch (Exception e){
+			} catch (Exception e) {
 				System.out.println("> Metric upload failure ");
 				e.printStackTrace();
 			}

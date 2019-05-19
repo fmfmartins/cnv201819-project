@@ -15,21 +15,18 @@ import java.util.HashMap;
 import pt.ulisboa.tecnico.cnv.mss.RequestMetrics;
 import pt.ulisboa.tecnico.cnv.mss.RequestMetricsStorage;
 
+public class HillClimbingMetrics {
 
-
-public class HillClimbingMetrics 
-{
-		
 	public static void printUsage() {
 		System.out.println("Syntax: java HillClimbingMetrics in_path [out_path]");
 		System.out.println("        in_path:  directory from which the class files are read");
 		System.out.println("        out_path: directory to which the class files are written");
-		//System.exit(-1);
+		// System.exit(-1);
 	}
 
 	public static void doInstrumentation(File in_dir, File out_dir) {
 		String filelist[] = in_dir.list();
-		
+
 		for (int i = 0; i < filelist.length; i++) {
 			String filename = filelist[i];
 			if (filename.endsWith(".class")) {
@@ -37,31 +34,29 @@ public class HillClimbingMetrics
 				String out_filename = out_dir.getAbsolutePath() + System.getProperty("file.separator") + filename;
 				ClassInfo ci = new ClassInfo(in_filename);
 
-				for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
+				for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements();) {
 					Routine routine = (Routine) e.nextElement();
-					
-					for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
+
+					for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements();) {
 						BasicBlock bb = (BasicBlock) b.nextElement();
 						bb.addBefore("HillClimbingMetrics", "dynBBCount", new Integer(1));
 					}
-					
-					for (Enumeration instrs = (routine.getInstructionArray()).elements(); instrs.hasMoreElements(); ) {
+
+					for (Enumeration instrs = (routine.getInstructionArray()).elements(); instrs.hasMoreElements();) {
 						Instruction instr = (Instruction) instrs.nextElement();
-						int opcode=instr.getOpcode();
+						int opcode = instr.getOpcode();
 						short instr_type = InstructionTable.InstructionTypeTable[opcode];
 						if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
 							instr.addBefore("HillClimbingMetrics", "LSCount", new Integer(0));
-						}
-						else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
+						} else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
 							instr.addBefore("HillClimbingMetrics", "LSCount", new Integer(1));
 						}
 					}
 				}
 				ci.write(out_filename);
 			}
-		}	
+		}
 	}
-
 
 	public static synchronized void LSCount(int type) {
 		if (type == 0)
@@ -70,11 +65,9 @@ public class HillClimbingMetrics
 			RequestMetricsStorage.metricsStorage.get(Thread.currentThread().getId()).incrStoreCount(1);
 	}
 
-
-	public static synchronized void printSequenceID(String foo){
+	public static synchronized void printSequenceID(String foo) {
 		System.out.println("HillClimbingMetrics:\t" + Thread.currentThread().getId());
 	}
-	
 
 	public static void dynBBCount(int incr) {
 		RequestMetricsStorage.metricsStorage.get(Thread.currentThread().getId()).incrBBCount(incr);
@@ -83,20 +76,18 @@ public class HillClimbingMetrics
 	public static void main(String argv[]) {
 		if (argv.length != 2) {
 			printUsage();
-		}else {
+		} else {
 			try {
 				File in_dir = new File(argv[0]);
 				File out_dir = new File(argv[1]);
 
 				if (in_dir.isDirectory() && out_dir.isDirectory()) {
-					//ADICIONAR FUNCS DE INSTRUMENTACAO AQUI
+					// ADICIONAR FUNCS DE INSTRUMENTACAO AQUI
 					doInstrumentation(in_dir, out_dir);
-				}
-				else {
+				} else {
 					printUsage();
 				}
-			}
-			catch (NullPointerException e) {
+			} catch (NullPointerException e) {
 				printUsage();
 			}
 		}

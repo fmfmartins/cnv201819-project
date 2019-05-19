@@ -88,7 +88,7 @@ run() {
 }
 
 runLB() {
-	java pt.ulisboa.tecnico.cnv.loadbalancing.LoadBalancer
+	java pt.ulisboa.tecnico.cnv.loadbalancing.WebServerLB
 }
 
 runAS() {
