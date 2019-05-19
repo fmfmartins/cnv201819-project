@@ -59,7 +59,7 @@ public class LoadBalancer {
 	private static int MAX_CACHE_SIZE = 20;
 
 	// LoadBalancer instance
-	private static final LoadBalancer loadBalancer = new LoadBalancer();
+	private static LoadBalancer loadBalancer;
 	// Cache where the key is the image name
 	private static Map<String, List<RequestMetrics>> cache;
 		
@@ -71,35 +71,12 @@ public class LoadBalancer {
 	private static ConcurrentHashMap<String,Long> instancesCost= new ConcurrentHashMap<String,Long>();	
 
 	//Test main class
-	public static void main(String[] args){
-    	LoadBalancer loadBalancer = LoadBalancer.getInstance();
-	}
+	public static void main(String[] args) throws Exception{
+        int port = LoadBalancer.getInstance().getPort();
 
-	//Get instance of LoadBalancer
-	public static LoadBalancer getInstance() {
-		return loadBalancer;
-	}
+        initCache();
 
-	//Contruct
-	private LoadBalancer(){
-		try {
-			//Creation of the Load Balancer 
-			init();
-		}
-		catch(Exception e){
-			System.out.println("Exception on init:"+e.getMessage());
-			e.printStackTrace();
-		}
         
-	}
-
-	
-	public void init() throws Exception {
-
-		int port = LoadBalancer.getInstance().getPort();
-
-		initCache();
-
 		final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port),0);
 	
 		load_balancer.createContext("/climb", new SendQueryHandler());
@@ -107,8 +84,22 @@ public class LoadBalancer {
 		load_balancer.setExecutor(Executors.newCachedThreadPool());
 		load_balancer.start();
 		System.out.println(load_balancer.getAddress().toString());
-
+        LoadBalancer loadBalancer = LoadBalancer.getInstance();
 	}
+
+	//Get instance of LoadBalancer
+	public static synchronized LoadBalancer getInstance() {
+        if(loadBalancer == null){
+            loadBalancer = new LoadBalancer();
+        }
+		return loadBalancer;
+	}
+
+	//Contruct
+	private LoadBalancer(){
+		loadBalancer.addInstance(Config.INSTANCE_DNS_TMP); 
+	}
+
 
 	//================================================================================
     // REQUEST HANDLERS
@@ -163,13 +154,19 @@ public class LoadBalancer {
 			// Get DNSName
 			//LoadBalancer loadBalancer = LoadBalancer.getInstance();
 			//String DNSName = loadBalancer.chooseInstance()+":8000"; //Verificar se e possivel saber o porto das instancias atraves do autoscaler
-			
-			// Add request to instance
-			//loadBalancer.addRequest(DNSName,params);
 
 			//System.out.println("CONFIG: " + Config.INSTANCE_DNS_TMP);
 
-			loadBalancer.addRequest(Config.INSTANCE_DNS_TMP, params);
+			try{
+                System.out.println();
+                System.out.println("Instance before add total cost : " + instancesCost.get(Config.INSTANCE_DNS_TMP));
+                System.out.println();
+				loadBalancer.addRequest(Config.INSTANCE_DNS_TMP, params);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+
+			
 
 			final String newQuery = "/climb?" + query + "&cost=" + params.getCost();
 		
@@ -194,8 +191,11 @@ public class LoadBalancer {
 		 		// write bytes from the buffer into output stream
 				bos.write(buffer, 0, len);
 			}
-			 
-			loadBalancer.removeRequest(Config.INSTANCE_DNS_TMP, params);
+
+            loadBalancer.removeRequest(Config.INSTANCE_DNS_TMP, params);
+            System.out.println();
+            System.out.println("Instance after remove total cost : " + instancesCost.get(Config.INSTANCE_DNS_TMP));
+            System.out.println();
 		
 	
 			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
@@ -266,20 +266,35 @@ public class LoadBalancer {
 
    // Add request to instance
    public static void addRequest(String dnsName,Params params){
-	   ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
-	   requestsOnInstance.add(params);
-	   // Update cost of instance
-	   Long cost = instancesCost.get(dnsName);
-	   instancesCost.put(dnsName,cost+params.getCost());  
+        synchronized(instancesRunning){
+	        ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+            requestsOnInstance.add(params);
+	    }
+	    // Update cost of instance
+	    synchronized(instancesCost){
+            Long cost = instancesCost.get(dnsName);
+            
+            instancesCost.put(dnsName,cost+params.getCost()); 
+            System.out.println();
+            System.out.println("instancecost add for " + dnsName + " -> " + instancesCost.get(dnsName));
+            System.out.println(); 
+	    }
    }
 
    // Remove request from instance
    public static void removeRequest(String dnsName, Params params){
-		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+       synchronized(instancesRunning){
+        ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
 		requestsOnInstance.remove(params);
-	   	// Update cost of instance
-	   	Long cost = instancesCost.get(dnsName);
-	   	instancesCost.put(dnsName, cost - params.getCost());
+       }
+           // Update cost of instance
+           synchronized(instancesCost){
+            Long cost = instancesCost.get(dnsName);
+            System.out.println();
+            System.out.println("instancecost remove for " + dnsName + " -> " + instancesCost.get(dnsName));
+            System.out.println();
+            instancesCost.put(dnsName, cost - params.getCost());
+           }	
    }
 
 
@@ -397,7 +412,7 @@ public class LoadBalancer {
 		cachedMetrics.add(metric);
 	}
 
-	private void initCache(){
+	private static void initCache(){
 		cache = new ConcurrentHashMap();
 		cache.put(HeightMaps.IMAGE_1, new LinkedList<RequestMetrics>());
 		cache.put(HeightMaps.IMAGE_2, new LinkedList<RequestMetrics>());
