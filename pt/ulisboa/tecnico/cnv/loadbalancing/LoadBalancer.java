@@ -13,11 +13,10 @@ import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.lang.Thread.*;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -52,22 +51,24 @@ import javax.imageio.ImageIO;
 
 public class LoadBalancer {
 
-    	private static int RANGE_PX_OFFSET = 50;
+    	private static int RANGE_PX_OFFSET = 10;
 
 	// LoadBalancer instance
-	private static final LoadBalancer loadBalancer = new LoadBalancer();	
-	
+	private static final LoadBalancer loadBalancer = new LoadBalancer();
+	// Cache where the key is the image name
+	private static Map<String, List<RequestMetrics>> cache = new HashMap<>();
+		
 	// Port	
 	private static final int port = 8000;
 
-    	//Hashset to save the future instances and requests running on them
-    	private static Map<String,ArrayList<Params>> instancesRunning = new HashMap<String,ArrayList<Params>>();
-	
+    	//Hashamp to save the future instances and requests running on them
+    	private static ConcurrentHashMap<String,ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String,ArrayList<Params>>();
+	private static ConcurrentHashMap<String,Long> instancesCost= new ConcurrentHashMap<String,Long>();	
+
 	//Test main class
 	public static void main(String[] args){
-    		LoadBalancer loadBalancer = LoadBalancer.getInstance();
+    	LoadBalancer loadBalancer = LoadBalancer.getInstance();
 	}
-
 
 	//Get instance of LoadBalancer
 	public static LoadBalancer getInstance() {
@@ -110,49 +111,58 @@ public class LoadBalancer {
 
 	//New instance running
 	public static void AddInstance(String dnsName){
- 		synchronized(instancesRunning){
-			instancesRunning.put(dnsName,new ArrayList<Params>());
-		}
-	
+ 		instancesRunning.put(dnsName,new ArrayList<Params>());
+		instancesCost.put(dnsName,new Long(0));
 	}
 
 	//Instance off
 	public static void RemoveInstance(String dnsName){
-		synchronized(instancesRunning){
-			instancesRunning.remove(dnsName);
-		}
+		instancesRunning.remove(dnsName);
+		instancesCost.remove(dnsName);
 	}
 
-	/*
-	//Choose instance to redirect the request
+	
+	// Choose instance to redirect the request
 	public static String ChoosesInstance(){
-		synchronized(instancesRunning){	
-						
+		
+		String DNSName="";
+		long actualCost=-1;
 
-
-		}	
-			
+		// Get instance with lower cost
+		for(Map.Entry<String, Long> instance : instancesCost.entrySet()){
+			long instanceCost=instance.getValue();
+			if(instanceCost<actualCost || actualCost==-1){
+				actualCost=instanceCost;
+				DNSName=instance.getKey();
+			}
+		
+		}
+		return DNSName;
+								
 	}
-	*/
 
 	// Add request to instance
-	public static void addRequest(String instanceId,Params params){
-		synchronized(instancesRunning) {
-			ArrayList<Params> requestsOnInstance = instancesRunning.get(instanceId);
-			requestsOnInstance.add(params);
-		}
+	public static void addRequest(String dnsName,Params params){
+		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+		requestsOnInstance.add(params);
+		// Update cost of instance
+		long cost=instancesCost.get(dnsName);
+		instancesCost.put(dnsName,cost+params.getCost());
+		
 	}
 
 	// Remove request from instance
-	public static void removeRequest(String instanceId, Params params){
-		synchronized(instancesRunning) {
-                        ArrayList<Params> requestsOnInstance = instancesRunning.get(instanceId);
-                        requestsOnInstance.remove(params);
-                }
+	public static void removeRequest(String dnsName, Params params){
+		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+               	requestsOnInstance.remove(params);
+		// Update cost of instance
+		long cost=instancesCost.get(dnsName);
+		instancesCost.put(dnsName,cost-params.getCost());
 	}
        
-    static class MyTestHandler implements HttpHandler {
-        @Override
+	// Handler test
+    	static class MyTestHandler implements HttpHandler {
+        	@Override
 		public void handle(final HttpExchange t) throws IOException {
             		final Headers headers = t.getResponseHeaders();
                         
@@ -194,26 +204,32 @@ public class LoadBalancer {
 			
 			//Create a params object
 			String[] listParams = query.split("&");
-			Params params = new Params(listParams);
-			getEstimatedCost(params);
-			
-			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
-			//String DNSName = loadBalancer.chooseInstance()
+			Params params = new Params(listParams);	
+			params.setCost(getEstimatedCost(params));
 
+			System.out.println("EstimatedCost = " + params.getCost());
+			
+			// Get DNSName
+			//LoadBalancer loadBalancer = LoadBalancer.getInstance()
+			//String DNSName = loadBalancer.chooseInstance(params)
+			
+			// Add request to instance
+			//loadBalancer.addRequest(DNSName,params);
+			
 			//DNS name
             		//String DNSName="ec2-35-180-31-140.eu-west-3.compute.amazonaws.com:8000";
-            		String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";
+            		String DNSName="ec2-35-180-98-85.eu-west-3.compute.amazonaws.com:8000";	
 		
-		
-	    		//loadBalancer.addRequest(DNSName,params);
-
             		URL url = new URL("http://"+DNSName+t.getRequestURI().toString());
             		HttpURLConnection con = (HttpURLConnection) url.openConnection();
             		con.setRequestMethod("GET");
 
 			//Get response
             		int responseCode = con.getResponseCode();
-						
+			
+			// Remove request from instance
+			//loadBalancer.removeRequest(DNSName,params);			
+			
 			InputStream response = con.getInputStream();
     			
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -227,8 +243,6 @@ public class LoadBalancer {
 				bos.write(buffer, 0, len);
 		 	}
 		
-			
-			////loadBalancer.removeRequest(DNSName,params);
 	
 			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
 
@@ -252,17 +266,15 @@ public class LoadBalancer {
 
     public static long getEstimatedCost(Params request){
 		System.out.println("getEstimatedCost");
-        
+		long eCost = -1;
         	List<RequestMetrics> dbMetrics = null;
 		dbMetrics = getSimilarMetricsFromDB(request);
 		if(dbMetrics == null){
-			System.out.println("Hello" + dbMetrics.size());
+			System.out.println("Empty set-> size: " + dbMetrics.size());
 		} else {
-			for(RequestMetrics metric : dbMetrics){
-				System.out.println(metric);
-			}
+			eCost = computeAverageCost(dbMetrics);
 		}
-        return 69420;
+        return eCost;
     }
 
     private static List<RequestMetrics> getSimilarMetricsFromDB(Params request){
@@ -295,12 +307,10 @@ public class LoadBalancer {
 					+ " and start_x between :min_start_x and :max_start_x"
 					+ " and start_y between :min_start_y and :max_start_y")
 				.withExpressionAttributeValues(queryParams);
-			
 			queryResult = AmazonDynamoDBHelper.query(RequestMetrics.class, queryExpression);
 		} catch (Exception e){
 			e.printStackTrace();
 		}
-        
         return queryResult;
     }
 
@@ -312,7 +322,14 @@ public class LoadBalancer {
     static int computeUpperBound(int param){
         int result = param + RANGE_PX_OFFSET;
         return result;
-    }
-
+	}
+	
+	static long computeAverageCost(List<RequestMetrics> dbMetrics){
+		long totalWeight = 0;
+		for(RequestMetrics metric : dbMetrics){
+			totalWeight += metric.getWeight();
+		}
+		return (long) (totalWeight / dbMetrics.size());
+	}
 }
 	
