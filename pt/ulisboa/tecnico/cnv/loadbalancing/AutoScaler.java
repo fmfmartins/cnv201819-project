@@ -56,8 +56,8 @@ public class AutoScaler {
     static int CHECK_DELAY = 60000;
     static int STARTUP_DELAY = 10000;
 
-    int MIN_INSTANCES = 1;
-    int MAX_INSTANCES = 5;
+    static int MIN_INSTANCES = 1;
+    static int MAX_INSTANCES = 5;
 
     static AutoScaler autoscaler;
     static AmazonEC2 ec2;
@@ -83,7 +83,7 @@ public class AutoScaler {
         timer.schedule(new CheckInstanceWorkloadTask(), STARTUP_DELAY, CHECK_DELAY);
 
         Timer otherTimer = new Timer();
-        otherTimer.schedule(new )
+        otherTimer.schedule(new CheckInstanceStateTask(), STARTUP_DELAY, CHECK_DELAY / 2);
     }
 
     /*
@@ -105,14 +105,12 @@ public class AutoScaler {
 
         public void run() {
             try {
-                System.out.println("Starting a new instance.");
                 RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
 
                 runInstancesRequest.withImageId(Config.AMI_ID).withInstanceType(Config.INSTANCE_TYPE).withMinCount(1)
                         .withMaxCount(1).withKeyName(Config.KEY_NAME).withSecurityGroups(Config.SEC_GROUP);
 
                 RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
-                System.out.println("Instance started");
 
                 EC2Instance newEC2Instance = new EC2Instance();
 
@@ -123,18 +121,18 @@ public class AutoScaler {
 
                 String newInstanceDNS = "no dns assigned";
 
-                DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
-                List<Reservation> reservations = describeInstancesRequest.getReservations();
-                for (Reservation reservation : reservations) {
-                    for (Instance instance : reservation.getInstances()) {
-                        if (instance.getInstanceId().equals(newInstanceId)) {
-                            newInstanceState = instance.getState().getName();
-                            newInstanceDNS = instance.getPublicDnsName();
-                            System.out.println("AutoScaler: newInstanceState -> " + newInstanceState);
-                            while (!newInstanceState.equals("running")) {
+
+                while (!newInstanceState.equals("running")) {
+                    DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
+                    List<Reservation> reservations = describeInstancesRequest.getReservations();
+                    for (Reservation reservation : reservations) {
+                        for (Instance instance : reservation.getInstances()) {
+                            if (instance.getInstanceId().equals(newInstanceId)) {
+                                newInstanceState = instance.getState().getName();
+                                newInstanceDNS = instance.getPublicDnsName();
+                                System.out.println("AutoScaler: newInstanceState -> " + newInstanceState);
                                 Thread.sleep(5000);
                             }
-                            System.out.println("AutoScaler: newInstanceState -> " + newInstanceState);
                         }
                     }
                 }
@@ -151,7 +149,8 @@ public class AutoScaler {
 
                 LoadBalancer.getInstance().addInstance(newEC2Instance.getPublicDNS());
 
-                AutoScaler.executingAction = false;
+                executingAction = false;
+                System.out.println("AutoScaler: Executing Action -> " + executingAction);
 
                 /*
                  * String publicDNS; String instanceID; synchronized(mapOfInstances){ for
@@ -170,6 +169,9 @@ public class AutoScaler {
     }
 
     public static void spawnEC2Instance() {
+        System.out.println("===================");
+        System.out.println("Spawn EC2 Instance");
+        System.out.println("===================");
         AutoScaler.executingAction = true;
         Thread spawnEC2InstanceThread = new SpawnThread();
         spawnEC2InstanceThread.start();
@@ -182,7 +184,7 @@ public class AutoScaler {
                 TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
                 termInstanceReq.withInstanceIds(mapOfInstances.get(publicDNS).getInstanceID());
                 ec2.terminateInstances(termInstanceReq);
-
+                LoadBalancer.getInstance().removeInstance(publicDNS);
                 AutoScaler.executingAction = false;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -244,66 +246,28 @@ public class AutoScaler {
 
     }
 
-    public static void main(String[] args) throws Exception {
-
-        System.out.println("===========================================");
-        System.out.println("Welcome to the Hill Climbing AutoScaler");
-        System.out.println("===========================================");
-
-        init();
-
-        if (!AutoScaler.executingAction) {
-            spawnEC2Instance();
-        }
-
-        while (AutoScaler.executingAction) {
-            System.out.println("Execution Action (SPAWN) -> " + AutoScaler.executingAction);
-            Thread.sleep(5000);
-        }
-
-        // checkInstancesState();
-
-        checkInstanceWorkload();
-
-        /*
-         * for(String publicDNS : mapOfInstances.keySet()){
-         * System.out.println(mapOfInstances.get(publicDNS));
-         * while(AutoScaler.executingAction){
-         * System.out.println("Execution Action (DESTROY) -> " +
-         * AutoScaler.executingAction); Thread.sleep(5000); }
-         * destroyEC2Instance(publicDNS); System.out.println("Instance " + publicDNS +
-         * " Destroyed!"); }
-         */
-
-        // checkInstancesState();
-        boolean wait = true;
-        while (wait) {
-            System.in.read();
-            wait = false;
-        }
-    }
-
     public static synchronized void checkInstanceWorkload() {
         long totalSystemWorkload = 0;
         long instanceWorkLoad = 0;
         long minWorkLoad = 0;
-        boolean skip = false;
+        boolean joblessInstance = false;
 
         EC2Instance minWorkLoadInstance = null;
 
+        System.out.println("AutoScaler: Number of Instances Running = " + mapOfInstances.size());
         for (String dnsName : mapOfInstances.keySet()) {
-            System.out.println("Number of Instances Running = " + mapOfInstances.size());
+            
             System.out.println("Instance DNS: " + dnsName);
 
             instanceWorkLoad = LoadBalancer.instancesCost.get(dnsName);
+
             if (instanceWorkLoad == 0) {
-                skip = true;
-                break;
+                joblessInstance = true;
             }
 
             totalSystemWorkload += instanceWorkLoad;
             if (minWorkLoadInstance == null || instanceWorkLoad < minWorkLoad) {
-                minWorkLoad = instanceLoad;
+                minWorkLoad = instanceWorkLoad;
                 minWorkLoadInstance = mapOfInstances.get(dnsName);
             }
 
@@ -311,20 +275,24 @@ public class AutoScaler {
 
         System.out.println("Total System Workload = " + totalSystemWorkload);
 
+        
+
         if (minWorkLoadInstance == null) {
-            skip = true;
+            System.out.println("AutoScaler: No instances found. Spawning new instance!");
+            spawnEC2Instance();
+            return;
         }
 
-        if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.8 && !skip
-                && runningInstances.size() < autoScaler.MAX_INSTANCES) {
-            System.out.println("SHOULD CREATE NEW INSTANCE");
+        if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.8
+                && mapOfInstances.size() < AutoScaler.MAX_INSTANCES && !joblessInstance) {
+            System.out.println("AutoScaler : Action -> Spawn new instance");
             spawnEC2Instance();
-        } else if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.3 && !skip
-                && runningInstances.size() > autoScaler.MIN_INSTANCES) {
-            System.out.println("SHOULD KILL AN INSTANCE");
+        } else if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.3
+                && mapOfInstances.size() > AutoScaler.MIN_INSTANCES) {
+                    System.out.println("AutoScaler : Action -> Destroy an instance");
             destroyEC2Instance(minWorkLoadInstance.getPublicDNS());
         } else {
-            System.out.println("AutoScaler: No scheduling action taken this cycle.");
+            System.out.println("AutoScaler : No scaling action taken during this cycle");
         }
     }
 
@@ -336,7 +304,11 @@ public class AutoScaler {
 
     public class CheckInstanceStateTask extends TimerTask {
         public void run() {
-            checkInstancesState();
+            try {
+                checkInstancesState();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -53,7 +53,7 @@ import javax.imageio.ImageIO;
 
 public class LoadBalancer {
 
-    private static int RANGE_PX_OFFSET = 40;
+    private static int RANGE_PX_OFFSET = 20;
     private static int MAX_CACHE_SIZE = 20;
 
     // LoadBalancer instance
@@ -248,16 +248,21 @@ public class LoadBalancer {
     // Choose instance to redirect the request
     public static String chooseInstance() {
         String DNSName = "";
-        Long actualCost;
-        long instanceCost;
+        Long actualCost = new Long(-1);
+        Long instanceCost = new Long(0);
 
         for (String dns : instancesCost.keySet()) {
-            if (instanceCost < actualCost || actualCost == null) {
-                actualCost = instanceCost;
+            System.out.println("ChooseInstance : dns -> " + dns + " Workload -> " + instancesCost.get(dns) + " ActualCost -> " + actualCost );
+
+            int cond1 = instancesCost.get(dns).compareTo(actualCost);
+            int cond2 = actualCost.compareTo(new Long(-1));
+
+            if ( cond1 < 0 || cond2 == 0) {
+                actualCost = instancesCost.get(dns);
                 DNSName = dns;
             }
         }
-        System.out.println("ChooseInstance: " + DNSName);
+        System.out.println("Chosen Instance: " + DNSName);
         return DNSName;
 
     }

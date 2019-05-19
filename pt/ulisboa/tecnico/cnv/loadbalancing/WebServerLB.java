@@ -15,8 +15,7 @@ public class WebServerLB {
         System.out.println("Welcome to the Hill Climbing AutoScaler");
         System.out.println("===========================================");
 
-        if (autoScaler.mapOfInstances.size() < autoScaler.MIN_INSTANCES) {
-
+        /*if (autoScaler.mapOfInstances.size() < autoScaler.MIN_INSTANCES) {
             if (!AutoScaler.executingAction) {
                 autoScaler.spawnEC2Instance();
                 while (autoScaler.executingAction) {
@@ -24,13 +23,16 @@ public class WebServerLB {
                     Thread.sleep(5000);
                 }
             }
-        }
+        }*/
 
-        // checkInstancesState();
         boolean wait = true;
         while (wait) {
             System.in.read();
             wait = false;
+        }
+        
+        for(EC2Instance inst : autoScaler.mapOfInstances.values()){
+            autoScaler.destroyEC2Instance(inst.getPublicDNS());
         }
     }
 }
