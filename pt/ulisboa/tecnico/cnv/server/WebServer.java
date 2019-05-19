@@ -132,10 +132,10 @@ public class WebServer {
 				i++;
 			}
 
-			/*
+			
 			for(String ar : args) {
 				System.out.println("ar: " + ar);
-			} */
+			} 
 
 			// Store the request parameters
 
