@@ -34,10 +34,14 @@ import javax.imageio.ImageIO;
 public class WebServer {
 
 	private static DynamoDBMapper dbMapper;
+	private static long currentWorkload;
 
 	public static void main(final String[] args) throws Exception {
 
 		//final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8000), 0);
+
+
+		currentWorkload = 0;
 
 		Runnable r = new Runnable(){
 		
@@ -133,9 +137,9 @@ public class WebServer {
 			}
 
 			
-			for(String ar : args) {
+			/*for(String ar : args) {
 				System.out.println("ar: " + ar);
-			} 
+			} */
 
 			// Store the request parameters
 
@@ -148,6 +152,9 @@ public class WebServer {
 			rms.metricsStorage.put(Thread.currentThread().getId(), metrics);
 
 			System.out.println("EstimatedCost -> " + metrics.getEstimatedCost());
+
+			
+			currentWorkload += metrics.getEstimatedCost();
 
 			//rms.metricsStorage.get(Thread.currentThread().getId()).printInfo();
 

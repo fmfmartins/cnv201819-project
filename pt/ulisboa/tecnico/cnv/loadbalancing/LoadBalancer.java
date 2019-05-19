@@ -169,6 +169,8 @@ public class LoadBalancer {
 
 			//System.out.println("CONFIG: " + Config.INSTANCE_DNS_TMP);
 
+			loadBalancer.addRequest(Config.INSTANCE_DNS_TMP, params);
+
 			final String newQuery = "/climb?" + query + "&cost=" + params.getCost();
 		
 			URL url = new URL("http://" + Config.INSTANCE_DNS_TMP + newQuery);
@@ -177,7 +179,8 @@ public class LoadBalancer {
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             
             // Send request
-            con.setRequestMethod("GET");
+			con.setRequestMethod("GET");
+
 			//Get response        
             int responseCode = con.getResponseCode();
 			System.out.println("> Response received from instance: \t" +  String.valueOf(responseCode));
@@ -190,7 +193,9 @@ public class LoadBalancer {
 		 	while ((len = response.read(buffer)) != -1) {
 		 		// write bytes from the buffer into output stream
 				bos.write(buffer, 0, len);
-		 	}
+			}
+			 
+			loadBalancer.removeRequest(Config.INSTANCE_DNS_TMP, params);
 		
 	
 			t.sendResponseHeaders(responseCode, bos.toByteArray().length);
@@ -208,8 +213,6 @@ public class LoadBalancer {
         }
     } 
     
-	
-	
 	static Params processRequest(Params request){
 		List<RequestMetrics> cachedMetrics = Collections.synchronizedList(cache.get(request.getImage()));
 		for(RequestMetrics metric : cachedMetrics){
@@ -233,7 +236,7 @@ public class LoadBalancer {
 	//New instance running
 	public static void addInstance(String dnsName){
 		instancesRunning.put(dnsName,new ArrayList<Params>());
-	   instancesCost.put(dnsName,new Long(0));
+	   	instancesCost.put(dnsName,new Long(0));
    }
 
    //Instance off
@@ -256,7 +259,6 @@ public class LoadBalancer {
 			   actualCost=instanceCost;
 			   DNSName=instance.getKey();
 		   }
-	   
 	   }
 	   return DNSName;
 							   
@@ -268,17 +270,16 @@ public class LoadBalancer {
 	   requestsOnInstance.add(params);
 	   // Update cost of instance
 	   Long cost = instancesCost.get(dnsName);
-	   instancesCost.put(dnsName,cost+params.getCost());
-	   
+	   instancesCost.put(dnsName,cost+params.getCost());  
    }
 
    // Remove request from instance
    public static void removeRequest(String dnsName, Params params){
-	   ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
-				  requestsOnInstance.remove(params);
-	   // Update cost of instance
-	   Long cost = instancesCost.get(dnsName);
-	   instancesCost.put(dnsName,cost-params.getCost());
+		ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
+		requestsOnInstance.remove(params);
+	   	// Update cost of instance
+	   	Long cost = instancesCost.get(dnsName);
+	   	instancesCost.put(dnsName, cost - params.getCost());
    }
 
 
