@@ -62,7 +62,7 @@ public class LoadBalancer {
     private static Map<String, List<RequestMetrics>> cache;
 
     // Port
-    private static final int port = 8001;
+    private static final int port = 8000;
 
     // Hashmap to save the future instances and requests running on them
     static ConcurrentHashMap<String, ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String, ArrayList<Params>>();
