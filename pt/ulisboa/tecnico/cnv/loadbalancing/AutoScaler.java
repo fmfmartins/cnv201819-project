@@ -287,7 +287,7 @@ public class AutoScaler {
                 && mapOfInstances.size() < AutoScaler.MAX_INSTANCES && !joblessInstance) {
             System.out.println("AutoScaler : Action -> Spawn new instance");
             spawnEC2Instance();
-        } else if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.3
+        } else if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) < 0.4
                 && mapOfInstances.size() > AutoScaler.MIN_INSTANCES) {
                     System.out.println("AutoScaler : Action -> Destroy an instance");
             destroyEC2Instance(minWorkLoadInstance.getPublicDNS());
