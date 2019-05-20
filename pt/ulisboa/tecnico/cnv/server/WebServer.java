@@ -265,6 +265,7 @@ public class WebServer {
 				m.setWeight(mWeight);
 				AmazonDynamoDBHelper.uploadItem(m);
 				System.out.println("> Metric upload success ");
+				rms.metricsStorage.remove(Thread.currentThread().getId());
 			} catch (Exception e) {
 				System.out.println("> Metric upload failure ");
 				e.printStackTrace();
