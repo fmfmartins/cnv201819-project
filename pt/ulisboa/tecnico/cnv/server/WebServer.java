@@ -67,7 +67,8 @@ public class WebServer {
 		server.createContext("/requestprogress", new MyProgressHandler());
 
 		// be aware! infinite pool of threads!
-		server.setExecutor(Executors.newCachedThreadPool());
+		//server.setExecutor(Executors.newCachedThreadPool());
+		server.setExecutor(Executors.newFixedThreadPool(10));
 		server.start();
 
 		System.out.println(server.getAddress().toString());
@@ -224,10 +225,22 @@ public class WebServer {
 				e.printStackTrace();
 			}
 
-			// Output to file
-
 			RequestMetrics m = rms.metricsStorage.get(Thread.currentThread().getId());
 			System.out.println(m);
+			rms.metricsStorage.remove(Thread.currentThread().getId());
+
+			// Upload to amazon DynamoDB
+			try {
+				long mWeight = MetricsCalculator.computeWeight(m);
+				// System.out.println("> mWeight : " + mWeight);
+				m.setWeight(mWeight);
+				AmazonDynamoDBHelper.uploadItem(m);
+				System.out.println("> Metric upload success ");
+			} catch (Exception e) {
+				System.out.println("> Metric upload failure ");
+				e.printStackTrace();
+			}
+
 			// m.outputToFile();
 
 			// Send response to browser.
@@ -258,18 +271,6 @@ public class WebServer {
 			 * HttpGet httpget = new HttpGet(uri); System.out.println(httpget.getURI());
 			 */
 
-			// Upload to amazon DynamoDB
-			try {
-				long mWeight = MetricsCalculator.computeWeight(m);
-				// System.out.println("> mWeight : " + mWeight);
-				m.setWeight(mWeight);
-				AmazonDynamoDBHelper.uploadItem(m);
-				System.out.println("> Metric upload success ");
-				rms.metricsStorage.remove(Thread.currentThread().getId());
-			} catch (Exception e) {
-				System.out.println("> Metric upload failure ");
-				e.printStackTrace();
-			}
 		}
 	}
 }

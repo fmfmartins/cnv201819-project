@@ -1,8 +1,10 @@
 package pt.ulisboa.tecnico.cnv.loadbalancing;
 
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,13 +31,16 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+
 import pt.ulisboa.tecnico.cnv.solver.Solver;
 import pt.ulisboa.tecnico.cnv.solver.SolverArgumentParser;
 import pt.ulisboa.tecnico.cnv.solver.SolverFactory;
 import pt.ulisboa.tecnico.cnv.mss.*;
+import pt.ulisboa.tecnico.cnv.rainbow.Menu;
 
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Instance;
@@ -50,6 +55,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.util.EC2MetadataUtils;
 
 import javax.imageio.ImageIO;
+
 
 public class LoadBalancer {
 
@@ -66,6 +72,7 @@ public class LoadBalancer {
 
     // Hashmap to save the future instances and requests running on them
     static ConcurrentHashMap<String, ArrayList<Params>> instancesRunning = new ConcurrentHashMap<String, ArrayList<Params>>();
+    static ConcurrentHashMap<String, ArrayList<HttpExchange>> instancesHttpRequests = new ConcurrentHashMap<String, ArrayList<HttpExchange>>();
     static ConcurrentHashMap<String, Long> instancesCost = new ConcurrentHashMap<String, Long>();
 
     // Test main class
@@ -86,11 +93,11 @@ public class LoadBalancer {
         initCache();
         try {
             final HttpServer load_balancer = HttpServer.create(new InetSocketAddress(port), 0);
-
             load_balancer.createContext("/climb", new SendQueryHandler());
             load_balancer.createContext("/test", new MyTestHandler());
             load_balancer.createContext("/progress", new MyProgressHandler());
-            load_balancer.setExecutor(Executors.newCachedThreadPool());
+            //load_balancer.setExecutor(Executors.newCachedThreadPool());
+            load_balancer.setExecutor(Executors.newFixedThreadPool(20));
             load_balancer.start();
             System.out.println(load_balancer.getAddress().toString());
         } catch (Exception e) {
@@ -103,63 +110,76 @@ public class LoadBalancer {
     // REQUEST HANDLERS
     // ================================================================================
 
-
-    static class MyProgressHandler implements HttpHandler{
+    static class MyProgressHandler implements HttpHandler {
         @Override
         public void handle(final HttpExchange t) throws IOException {
-            final Headers headers = t.getResponseHeaders();
 
-            System.out.println("LoadBalancer: Checking requests progress..");
+            try {
+                final Headers headers = t.getResponseHeaders();
 
-            int length = 0;
+                System.out.println(Menu.ANSI_CYAN + "----------PROGRESS REQUEST----------\t" + Menu.ANSI_RESET);
+    
+                final String query = t.getRequestURI().getQuery();
+    
+                /*System.out.println("> Headers:\t" + headers);
+                System.out.println("> Query:\t" + query);
+                System.out.println("> Request:\t" + t.getRequestURI().toString());*/
 
-            String reply = "";
-            reply += String.format("*==============================*");
-            reply += String.format("* HillClimbing@Cloud - Group 2 *");
-            reply += String.format("*==============================*");
+                System.out.println("LoadBalancer: Checking requests progress..");
+                System.out.println("");
 
-            length += reply.getBytes().length;
+                String reply = "";
+                reply += String.format("*=================================================*\n");
+                reply += String.format("* HillClimbing@Cloud - Group 2 - 2018/19 - MEIC-A *\n");
+                reply += String.format("*=================================================*\n");
 
-            URL url;
-            HttpURLConnection con;
-            int responseCode = 500;
-            OutputStream os = t.getResponseBody();
-            for (String dns : instancesCost.keySet()){
 
-                reply += dns + "\n";
-                url = new URL("http://" + dns + ":8000/requestsprogress");
-                System.out.println("Sending request to -> " + url.toString());
-                con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");    
-                responseCode = con.getResponseCode();
-                InputStream response = con.getInputStream();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int len;
-                String aux;
-                // read bytes from the input stream and store them in buffer
-                while ((len = response.read(buffer)) != -1) {
-                    // write bytes from the buffer into output stream
-                    aux = new String(buffer);
-                    reply += aux;
-                    length += len;
-                    bos.write(buffer, 0, len);
+                for (String dns : instancesCost.keySet()) {
+
+
+                    reply += String.format("--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>\n"); 
+                    reply += dns + "\n";
+                    reply += String.format("======================= REQUESTS =======================\n"); 
+                    String line;
+                    StringBuffer response = new StringBuffer();
+                    BufferedReader rd;
+                    int responseCode;
+                    try{
+                        URL url = new URL("http://" + dns + ":8000/requestprogress");
+                        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                        con.setRequestMethod("GET");
+                        con.setConnectTimeout(2000);
+                        responseCode = con.getResponseCode();
+                        rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        response = new StringBuffer();
+                    } catch (Exception e){
+                        System.out.println(Menu.ANSI_RED + "Progress handler: Could not check instance requests." + Menu.ANSI_RESET);
+                        continue;
+                    }
+                    
+                    while( (line = rd.readLine() ) != null){
+                        response.append(line + "\n");
+                    }
+                    reply += response.toString();
+                    reply += String.format("--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>\n\n");
                 }
+
+                //System.out.println("reply length : " + reply.getBytes().length);
+
+                t.sendResponseHeaders(200, reply.getBytes().length);
+                headers.add("Access-Control-Allow-Origin", "*");
+                headers.add("Access-Control-Allow-Credentials", "true");
+                headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
+                headers.add("Access-Control-Allow-Headers",
+                        "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+                OutputStream os = t.getResponseBody();
+                os.write(reply.getBytes());
+                os.close();
+            } catch (Exception e) {
+                System.out.println(Menu.ANSI_RED + "Progress handler: Outer exception!" + Menu.ANSI_RESET);
+                e.printStackTrace();
             }
 
-            System.out.println("length : " + length);
-            System.out.println("reply length : " + reply.getBytes().length);
-
-            t.sendResponseHeaders(200, reply.getBytes().length); 
-            headers.add("Content-Type", "image/png");
-            headers.add("Access-Control-Allow-Origin", "*");
-            headers.add("Access-Control-Allow-Credentials", "true");
-            headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
-            headers.add("Access-Control-Allow-Headers",
-                    "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-            
-            os.write(reply.getBytes());
-            os.close();
         }
     }
 
@@ -170,7 +190,9 @@ public class LoadBalancer {
 
             final String query = t.getRequestURI().getQuery();
 
-            System.out.println("> Query:\t" + query);
+            System.out.println(Menu.ANSI_CYAN + "----------TEST REQUEST----------\t" + Menu.ANSI_RESET);
+
+            //System.out.println("> Query:\t" + query);
 
             String response = "test ok";
 
@@ -193,20 +215,20 @@ public class LoadBalancer {
         public void handle(final HttpExchange t) throws IOException {
             final Headers headers = t.getResponseHeaders();
 
-            System.out.println("----------NEW REQUEST----------\t");
+            System.out.println(Menu.ANSI_CYAN + "----------CLIMB REQUEST----------\t" + Menu.ANSI_RESET);
 
             final String query = t.getRequestURI().getQuery();
 
-            System.out.println("> Headers:\t" + query);
+            /*System.out.println("> Headers:\t" + headers);
             System.out.println("> Query:\t" + query);
-            System.out.println("> Request:\t" + t.getRequestURI().toString());
+            System.out.println("> Request:\t" + t.getRequestURI().toString());*/
 
             // Create a params object
             String[] listParams = query.split("&");
             Params params = new Params(listParams);
             processRequest(params);
 
-            System.out.println("Request Cost = " + params.getCost());
+            System.out.println(Menu.ANSI_PURPLE + "Request Cost = " + Menu.ANSI_RESET + params.getCost());
 
             // Get DNSName
             // LoadBalancer loadBalancer = LoadBalancer.getInstance();
@@ -220,56 +242,69 @@ public class LoadBalancer {
 
             try {
                 instanceDNS = chooseInstance();
-                System.out.println();
-                System.out.println("Instance before add total cost : " + instancesCost.get(instanceDNS));
-                System.out.println();
-                loadBalancer.addRequest(instanceDNS, params);
-            } catch (Exception e) {
+                loadBalancer.addRequest(instanceDNS, params, t);
+
+                final String newQuery = "/climb?" + query + "&cost=" + params.getCost();
+
+                URL url = new URL("http://" + instanceDNS + ":8000" + newQuery);
+
+                // System.out.println("Sending request to -> " + url.toString());
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+ 
+                con.setRequestMethod("GET");
+
+                // Get response
+                int responseCode = con.getResponseCode();
+                // System.out.println("> Response received from instance: \t" + String.valueOf(responseCode));
+
+                InputStream response = con.getInputStream();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int len;
+                // read bytes from the input stream and store them in buffer
+                while ((len = response.read(buffer)) != -1) {
+                    // write bytes from the buffer into output stream
+                    bos.write(buffer, 0, len);
+                }
+
+                loadBalancer.removeRequest(instanceDNS, params, t);
+            
+                /*System.out.println();
+                System.out.println("Instance after remove total cost : " + instancesCost.get(instanceDNS));
+                System.out.println();*/
+
+                t.sendResponseHeaders(responseCode, bos.toByteArray().length);
+                headers.add("Content-Type", "image/png");
+                headers.add("Access-Control-Allow-Origin", "*");
+                headers.add("Access-Control-Allow-Credentials", "true");
+                headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
+                headers.add("Access-Control-Allow-Headers",
+                        "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+                OutputStream os = t.getResponseBody();
+                os.write(bos.toByteArray());
+                os.close();
+
+                System.out.println("> Response sent:\t");
+                System.out.println("-------------------------------\t");
+
+            } catch ( Exception e ) {
                 e.printStackTrace();
+
+                loadBalancer.removeRequest(instanceDNS, params, t);
+
+                System.out.println("SLEEPING");
+                try{
+                    Thread.sleep(3000);
+                } catch(InterruptedException ie){
+                    System.out.println(ie.getMessage());
+                }
+
+                System.out.println("LoadBalancer : Retrying request...");
+
+                SendQueryHandler retry = new LoadBalancer.SendQueryHandler();
+                retry.handle(t);
+
             }
-
-            final String newQuery = "/climb?" + query + "&cost=" + params.getCost();
-
-            URL url = new URL("http://" + instanceDNS + ":8000" + newQuery);
-
-            System.out.println("Sending request to -> " + url.toString());
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-            // Send request
-            con.setRequestMethod("GET");
-
-            // Get response
-            int responseCode = con.getResponseCode();
-            System.out.println("> Response received from instance: \t" + String.valueOf(responseCode));
-
-            InputStream response = con.getInputStream();
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int len;
-            // read bytes from the input stream and store them in buffer
-            while ((len = response.read(buffer)) != -1) {
-                // write bytes from the buffer into output stream
-                bos.write(buffer, 0, len);
-            }
-
-            loadBalancer.removeRequest(instanceDNS, params);
-            System.out.println();
-            System.out.println("Instance after remove total cost : " + instancesCost.get(instanceDNS));
-            System.out.println();
-
-            t.sendResponseHeaders(responseCode, bos.toByteArray().length);
-            headers.add("Content-Type", "image/png");
-            headers.add("Access-Control-Allow-Origin", "*");
-            headers.add("Access-Control-Allow-Credentials", "true");
-            headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
-            headers.add("Access-Control-Allow-Headers",
-                    "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-            OutputStream os = t.getResponseBody();
-            os.write(bos.toByteArray());
-            os.close();
-
-            System.out.println("> Response sent:\t");
-            System.out.println("-------------------------------\t");
         }
     }
 
@@ -297,13 +332,16 @@ public class LoadBalancer {
     public static void addInstance(String dnsName) {
         instancesRunning.put(dnsName, new ArrayList<Params>());
         instancesCost.put(dnsName, new Long(0));
-        System.out.println("Instance " + dnsName + "added to loadbalancer");
+        instancesHttpRequests.put(dnsName, new ArrayList<HttpExchange>());
+        System.out.println(Menu.ANSI_CYAN + "LoadBalancer: Instance " + dnsName + " added to loadbalancer" + Menu.ANSI_RESET);
     }
 
     // Instance off
     public static void removeInstance(String dnsName) {
         instancesRunning.remove(dnsName);
         instancesCost.remove(dnsName);
+        instancesHttpRequests.remove(dnsName);
+        System.out.println(Menu.ANSI_RED + "LoadBalancer: Instance " + dnsName + " removed from loadbalancer" + Menu.ANSI_RESET);
     }
 
     // Choose instance to redirect the request
@@ -313,8 +351,8 @@ public class LoadBalancer {
         Long instanceCost = new Long(0);
 
         for (String dns : instancesCost.keySet()) {
-            System.out.println("ChooseInstance : dns -> " + dns + " Workload -> " + instancesCost.get(dns)
-                    + " ActualCost -> " + actualCost);
+            //System.out.println("ChooseInstance : dns -> " + dns + " Workload -> " + instancesCost.get(dns)
+            //        + " ActualCost -> " + actualCost);
 
             int cond1 = instancesCost.get(dns).compareTo(actualCost);
             int cond2 = actualCost.compareTo(new Long(-1));
@@ -324,39 +362,43 @@ public class LoadBalancer {
                 DNSName = dns;
             }
         }
-        System.out.println("Chosen Instance: " + DNSName);
+        System.out.println(Menu.ANSI_CYAN + "LoadBalancer: Chosen Instance -> " + DNSName + Menu.ANSI_RESET);
         return DNSName;
     }
 
     // Add request to instance
-    public static void addRequest(String dnsName, Params params) {
+    public static void addRequest(String dnsName, Params params, HttpExchange t) {
         synchronized (instancesRunning) {
             ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
             requestsOnInstance.add(params);
+            ArrayList<HttpExchange> httpOnInstance = instancesHttpRequests.get(dnsName);
+            httpOnInstance.add(t);
         }
         // Update cost of instance
         synchronized (instancesCost) {
             Long cost = instancesCost.get(dnsName);
 
             instancesCost.put(dnsName, cost + params.getCost());
-            System.out.println();
-            System.out.println("instancecost add for " + dnsName + " -> " + instancesCost.get(dnsName));
+            //System.out.println();
+            //System.out.println("instancecost add for " + dnsName + " -> " + instancesCost.get(dnsName));
             System.out.println();
         }
     }
 
     // Remove request from instance
-    public static void removeRequest(String dnsName, Params params) {
+    public static void removeRequest(String dnsName, Params params, HttpExchange t) {
         synchronized (instancesRunning) {
             ArrayList<Params> requestsOnInstance = instancesRunning.get(dnsName);
             requestsOnInstance.remove(params);
+            ArrayList<HttpExchange> httpOnInstance = instancesHttpRequests.get(dnsName);
+            httpOnInstance.remove(t);
         }
         // Update cost of instance
         synchronized (instancesCost) {
             Long cost = instancesCost.get(dnsName);
-            System.out.println();
+            /*System.out.println();
             System.out.println("instancecost remove for " + dnsName + " -> " + instancesCost.get(dnsName));
-            System.out.println();
+            System.out.println();*/
             instancesCost.put(dnsName, cost - params.getCost());
         }
     }
@@ -366,7 +408,7 @@ public class LoadBalancer {
     // ================================================================================
 
     private static List<RequestMetrics> getSimilarMetricsFromDB(Params request) {
-        System.out.println("getSimilarMetricsFromDB");
+        //System.out.println("getSimilarMetricsFromDB");
         List<RequestMetrics> queryResult = new ArrayList<>();
         try {
             Map<String, AttributeValue> queryParams = new HashMap<>();
@@ -415,7 +457,7 @@ public class LoadBalancer {
     }
 
     private static List<RequestMetrics> getSameImageMetricsFromDB(Params request) {
-        System.out.println("getSimilarMetricsFromDB");
+        //System.out.println("getSimilarMetricsFromDB");
         List<RequestMetrics> queryResult = new ArrayList<>();
         try {
             Map<String, AttributeValue> queryParams = new HashMap<>();
@@ -449,7 +491,7 @@ public class LoadBalancer {
     }
 
     private static List<RequestMetrics> getMatchingMetricFromDB(Params request) {
-        System.out.println("getMatchingMetricFromDB");
+        //System.out.println("getMatchingMetricFromDB");
         List<RequestMetrics> queryResult = new ArrayList<>();
         try {
             Map<String, AttributeValue> queryParams = new HashMap<>();
@@ -485,26 +527,25 @@ public class LoadBalancer {
             }
             return (long) (totalWeight / dbMetrics.size());
         } else {
-            System.out.println("No recorded requests for requested heightmap!");
+            System.out.println(Menu.ANSI_RED + "LoadBalancer: No recorded requests for requested heightmap!" +  Menu.ANSI_RESET);
             // NEED TO DECIDE ON UNKNOWN COST
-            return 1;
+            return (long) AutoScaler.MAX_INSTANCE_WORKLOAD / 2;
         }
     }
 
     public static long getEstimatedCost(Params request) {
-        System.out.println("getEstimatedCost");
+        //System.out.println("getEstimatedCost");
         long eCost = -1;
         List<RequestMetrics> dbMetrics = null;
         dbMetrics = getMatchingMetricFromDB(request);
         if (dbMetrics.size() == 0) {
-            System.out.println("LoadBalancer: No matching requests on DynamoDB!");
+            System.out.println(Menu.ANSI_RED + "LoadBalancer: No matching requests on DynamoDB!" + Menu.ANSI_RESET);
             dbMetrics = getSimilarMetricsFromDB(request);
             if (dbMetrics.size() == 0) {
-                System.out.println("LoadBalancer: No similar requests on DynamoDB!");
+                System.out.println(Menu.ANSI_RED + "LoadBalancer: No similar requests on DynamoDB!" + Menu.ANSI_RESET);
                 dbMetrics = getSimilarMetricsFromDB(request);
-                if (dbMetrics.size() == 0) {
-                    dbMetrics = getSameImageMetricsFromDB(request);
-                }
+            } else {
+                return (long) AutoScaler.MAX_INSTANCE_WORKLOAD / 2;
             }
         }
         for (RequestMetrics metric : dbMetrics) {

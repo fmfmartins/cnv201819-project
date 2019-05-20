@@ -2,6 +2,8 @@ package pt.ulisboa.tecnico.cnv.loadbalancing;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +20,8 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.HttpURLConnection;
 
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.Authenticator.Retry;
 import com.sun.net.httpserver.HttpExchange;
 
 import com.amazonaws.AmazonClientException;
@@ -41,6 +45,8 @@ import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 
+import pt.ulisboa.tecnico.cnv.rainbow.Menu;
+
 /**
  * 
  * Singleton Design Pattern
@@ -53,15 +59,17 @@ public class AutoScaler {
     // ConcurrentHashMap runningInstances <PublicDNS, EC2Instance>
     static ConcurrentHashMap<String, EC2Instance> mapOfInstances = new ConcurrentHashMap<String, EC2Instance>();
     static boolean executingAction;
-    static int CHECK_DELAY = 60000;
+    static int CHECK_DELAY = 120000;
     static int STARTUP_DELAY = 10000;
 
     static int MIN_INSTANCES = 1;
-    static int MAX_INSTANCES = 15;
+    static int MAX_INSTANCES = 4;
+
+    static int MAX_RETRIES = 3;
 
     static AutoScaler autoscaler;
     static AmazonEC2 ec2;
-    static final long MAX_INSTANCE_WORKLOAD = 30000000000L;
+    static final long MAX_INSTANCE_WORKLOAD = 800000000L;
 
     static AmazonCloudWatch cloudWatch;
 
@@ -83,7 +91,7 @@ public class AutoScaler {
         timer.schedule(new CheckInstanceWorkloadTask(), STARTUP_DELAY, CHECK_DELAY);
 
         Timer otherTimer = new Timer();
-        otherTimer.schedule(new CheckInstanceStateTask(), STARTUP_DELAY, CHECK_DELAY / 2);
+        otherTimer.schedule(new CheckInstanceStateTask(), STARTUP_DELAY * 2, CHECK_DELAY / 4);
     }
 
     /*
@@ -121,7 +129,6 @@ public class AutoScaler {
 
                 String newInstanceDNS = "no dns assigned";
 
-
                 while (!newInstanceState.equals("running")) {
                     DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
                     List<Reservation> reservations = describeInstancesRequest.getReservations();
@@ -144,7 +151,7 @@ public class AutoScaler {
 
                 synchronized (mapOfInstances) {
                     mapOfInstances.put(newEC2Instance.getPublicDNS(), newEC2Instance);
-                    System.out.println("New instance : " + newEC2Instance.getPublicDNS() + " added!");
+                    //System.out.println("New instance : " + newEC2Instance.getPublicDNS() + " added!");
                 }
 
                 LoadBalancer.getInstance().addInstance(newEC2Instance.getPublicDNS());
@@ -169,9 +176,9 @@ public class AutoScaler {
     }
 
     public static void spawnEC2Instance() {
-        System.out.println("===================");
+        System.out.println(Menu.ANSI_YELLOW + "===================");
         System.out.println("Spawn EC2 Instance");
-        System.out.println("===================");
+        System.out.println("===================" + Menu.ANSI_RESET);
         AutoScaler.executingAction = true;
         Thread spawnEC2InstanceThread = new SpawnThread();
         spawnEC2InstanceThread.start();
@@ -192,49 +199,112 @@ public class AutoScaler {
         }
     }
 
+    public static class RetryThread implements Runnable {
+        private final HttpExchange t;
+
+        RetryThread(HttpExchange t) {
+            this.t = t;
+        }
+
+        public void run() {
+            HttpHandler h = new LoadBalancer.SendQueryHandler();
+            try {
+                h.handle(t);
+            } catch (IOException ie) {
+                ie.printStackTrace();
+            }
+        }
+    }
+
     public static void destroyEC2Instance(String publicDNS) {
-        System.out.println("=====================");
+        System.out.println(Menu.ANSI_YELLOW + "=====================");
         System.out.println("Destroy EC2 Instance");
-        System.out.println("=====================");
+        System.out.println("=====================" + Menu.ANSI_RESET);
         AutoScaler.executingAction = true;
         DestroyThread destroyEC2Instance = new DestroyThread();
         destroyEC2Instance.run(publicDNS);
         mapOfInstances.remove(publicDNS);
-        System.out.println("AutoScaler: Instance: " + publicDNS + " removed.");
+        System.out.println(Menu.ANSI_RED + "AutoScaler: Instance: " + publicDNS + " removed." + Menu.ANSI_RESET);
     }
 
     public static void checkInstancesState() throws MalformedURLException {
-        System.out.println("======================");
+        int numRetries = 0;
+        System.out.println(Menu.ANSI_YELLOW + "======================");
         System.out.println("Check Instances State");
-        System.out.println("======================");
+        System.out.println("======================" + Menu.ANSI_RESET);
         synchronized (mapOfInstances) {
             for (String publicDNSName : mapOfInstances.keySet()) {
                 EC2Instance value = mapOfInstances.get(publicDNSName);
                 System.out.println("Instance " + publicDNSName);
                 URL url = new URL("http://" + publicDNSName + ":8000/test");
-                try {
-                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                    con.setRequestMethod("GET");
-                    con.setConnectTimeout(4000);
-                    int responseCode = con.getResponseCode();
-                    BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    String response = rd.readLine();
-                    if (response.equals("test ok")) {
-                        System.out.println("AutoScaler: /test endpoint SUCCESS");
-                    } else {
-                        System.out.println("AutoScaler: /test endpoint FAIL");
-                        System.out.println("AutoScaler: Instance " + publicDNSName + " was down! It will be removed");
-                        destroyEC2Instance(publicDNSName);
-                    }
 
+                try {
+                    while (true) {
+                        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                        con.setRequestMethod("GET");
+                        con.setConnectTimeout(4000);
+                        int responseCode = con.getResponseCode();
+                        BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        String response = rd.readLine();
+                        if (response.equals("test ok")) {
+                            System.out
+                                    .println(Menu.ANSI_GREEN + "AutoScaler: /test endpoint SUCCESS" + Menu.ANSI_RESET);
+                            break;
+                        } else {
+                            System.out.println(Menu.ANSI_RED + "AutoScaler: " + publicDNSName + " /test endpoint FAIL");
+                            System.out.println("AutoScaler: Retrying..." + Menu.ANSI_RESET);
+
+                            if (numRetries >= MAX_RETRIES) {
+                                System.out.println(Menu.ANSI_RED + "AutoScaler: Max number of retries reached!");
+                                System.out.println("AutoScaler: Instance " + Menu.ANSI_RESET + publicDNSName
+                                        + Menu.ANSI_RED + " was down! It will be removed!" + Menu.ANSI_RESET);
+
+                                ExecutorService es = Executors.newCachedThreadPool();
+                                ArrayList<HttpExchange> retryList = new ArrayList<>(
+                                        LoadBalancer.instancesHttpRequests.get(publicDNSName));
+                                destroyEC2Instance(publicDNSName);
+                                try {
+                                    Thread.sleep(4000);
+                                } catch (InterruptedException interr) {
+                                    interr.printStackTrace();
+                                }
+                                for (HttpExchange t : retryList) {
+                                    try {
+                                        es.execute(new RetryThread(t));
+                                    } catch (Exception pls) {
+                                        pls.printStackTrace();
+                                    }
+                                }
+                                es.shutdown();
+                            }
+                        }
+                    }
                 } catch (IOException e) {
-                    System.out.println("AutoScaler: Instance State: DOWN");
-                    System.out.println("AutoScaler: Instance " + publicDNSName + " was down! It will be removed");
+                    System.out.println(Menu.ANSI_RED + "AutoScaler: Instance State: DOWN");
+                    System.out.println("AutoScaler: Instance " + Menu.ANSI_RESET + publicDNSName + Menu.ANSI_RED
+                            + " was down! It will be removed!" + Menu.ANSI_RESET);
+
+                    ExecutorService es = Executors.newCachedThreadPool();
+                    ArrayList<HttpExchange> retryList = new ArrayList<>(
+                            LoadBalancer.instancesHttpRequests.get(publicDNSName));
                     destroyEC2Instance(publicDNSName);
+                    try {
+                        Thread.sleep(4000);
+                    } catch (InterruptedException interr) {
+                        interr.printStackTrace();
+                    }
+                    for (HttpExchange t : retryList) {
+                        try {
+                            es.execute(new RetryThread(t));
+                        } catch (Exception pls) {
+                            pls.printStackTrace();
+                        }
+                    }
+                    es.shutdown();
                     return;
                 }
             }
-            System.out.println("Done!");
+            System.out.println(Menu.ANSI_GREEN + "AutoScaler: Check instances state complete!" + Menu.ANSI_RESET);
         }
     }
 
@@ -247,6 +317,9 @@ public class AutoScaler {
     }
 
     public static synchronized void checkInstanceWorkload() {
+        System.out.println(Menu.ANSI_YELLOW + "=========================");
+        System.out.println("Check Instances Workload");
+        System.out.println("=========================" + Menu.ANSI_RESET);
         long totalSystemWorkload = 0;
         long instanceWorkLoad = 0;
         long minWorkLoad = 0;
@@ -256,7 +329,7 @@ public class AutoScaler {
 
         System.out.println("AutoScaler: Number of Instances Running = " + mapOfInstances.size());
         for (String dnsName : mapOfInstances.keySet()) {
-            
+
             System.out.println("Instance DNS: " + dnsName);
 
             instanceWorkLoad = LoadBalancer.instancesCost.get(dnsName);
@@ -275,8 +348,6 @@ public class AutoScaler {
 
         System.out.println("Total System Workload = " + totalSystemWorkload);
 
-        
-
         if (minWorkLoadInstance == null) {
             System.out.println("AutoScaler: No instances found. Spawning new instance!");
             spawnEC2Instance();
@@ -285,11 +356,11 @@ public class AutoScaler {
 
         if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) > 0.8
                 && mapOfInstances.size() < AutoScaler.MAX_INSTANCES && !joblessInstance) {
-            System.out.println("AutoScaler : Action -> Spawn new instance");
+            System.out.println(Menu.ANSI_GREEN + "AutoScaler : Action -> Spawn new instance" + Menu.ANSI_RESET);
             spawnEC2Instance();
         } else if ((totalSystemWorkload / MAX_INSTANCE_WORKLOAD * mapOfInstances.size()) < 0.4
                 && mapOfInstances.size() > AutoScaler.MIN_INSTANCES) {
-                    System.out.println("AutoScaler : Action -> Destroy an instance");
+            System.out.println(Menu.ANSI_GREEN + "AutoScaler : Action -> Destroy an instance" + Menu.ANSI_RESET);
             destroyEC2Instance(minWorkLoadInstance.getPublicDNS());
         } else {
             System.out.println("AutoScaler : No scaling action taken during this cycle");

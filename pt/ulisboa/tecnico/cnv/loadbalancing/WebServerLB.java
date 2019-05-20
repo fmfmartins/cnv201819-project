@@ -34,5 +34,8 @@ public class WebServerLB {
         for(EC2Instance inst : autoScaler.mapOfInstances.values()){
             autoScaler.destroyEC2Instance(inst.getPublicDNS());
         }
+        System.out.println("Shutting down..");
+        Thread.sleep(2000);
+        System.exit(0);
     }
 }
