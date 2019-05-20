@@ -390,11 +390,13 @@ public class LoadBalancer {
             }
             return (long) (totalWeight / dbMetrics.size());
         } else {
-            // SHOULD NEVER HAPPEN
             System.out.println("No recorded requests for requested heightmap!");
+            // NEED TO DECIDE ON UNKNOWN COST
             return 1;
         }
     }
+
+
 
     public static long getEstimatedCost(Params request) {
         System.out.println("getEstimatedCost");
