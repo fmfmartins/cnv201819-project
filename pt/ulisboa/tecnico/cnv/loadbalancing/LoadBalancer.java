@@ -252,19 +252,19 @@ public class LoadBalancer {
         Long instanceCost = new Long(0);
 
         for (String dns : instancesCost.keySet()) {
-            System.out.println("ChooseInstance : dns -> " + dns + " Workload -> " + instancesCost.get(dns) + " ActualCost -> " + actualCost );
+            System.out.println("ChooseInstance : dns -> " + dns + " Workload -> " + instancesCost.get(dns)
+                    + " ActualCost -> " + actualCost);
 
             int cond1 = instancesCost.get(dns).compareTo(actualCost);
             int cond2 = actualCost.compareTo(new Long(-1));
 
-            if ( cond1 < 0 || cond2 == 0) {
+            if (cond1 < 0 || cond2 == 0) {
                 actualCost = instancesCost.get(dns);
                 DNSName = dns;
             }
         }
         System.out.println("Chosen Instance: " + DNSName);
         return DNSName;
-
     }
 
     // Add request to instance
@@ -353,6 +353,25 @@ public class LoadBalancer {
         return queryResult;
     }
 
+    private static List<RequestMetrics> getSameImageMetricsFromDB(Params request) {
+        System.out.println("getSimilarMetricsFromDB");
+        List<RequestMetrics> queryResult = new ArrayList<>();
+        try {
+            Map<String, AttributeValue> queryParams = new HashMap<>();
+            queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
+            queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
+
+            DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
+                    .withKeyConditionExpression("image_name = :image_name")
+                    .withFilterExpression("solver_algorithm = :solver_algorithm")
+                    .withExpressionAttributeValues(queryParams);
+            queryResult = AmazonDynamoDBHelper.query(RequestMetrics.class, queryExpression);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return queryResult;
+    }
+
     static int computeLowerBound(int param) {
         int result = param - RANGE_PX_OFFSET;
         return result > 0 ? result : 0;
@@ -371,8 +390,9 @@ public class LoadBalancer {
             }
             return (long) (totalWeight / dbMetrics.size());
         } else {
-            // NEED TO DECIDE ON UNKNOWN COST
-            return -1;
+            // SHOULD NEVER HAPPEN
+            System.out.println("No recorded requests for requested heightmap!");
+            return 1;
         }
     }
 
@@ -381,14 +401,15 @@ public class LoadBalancer {
         long eCost = -1;
         List<RequestMetrics> dbMetrics = null;
         dbMetrics = getSimilarMetricsFromDB(request);
-        if (dbMetrics == null) {
-            System.out.println("Empty set-> size: " + dbMetrics.size());
+        if (dbMetrics.size() == 0) {
+            System.out.println("LoadBalancer: No matching requests on DynamoDB!");
+            dbMetrics = getSameImageMetricsFromDB(request);
         } else {
             for (RequestMetrics metric : dbMetrics) {
                 addToCache(metric);
             }
-            eCost = computeAverageCost(dbMetrics);
         }
+        eCost = computeAverageCost(dbMetrics);
         return eCost;
     }
 
