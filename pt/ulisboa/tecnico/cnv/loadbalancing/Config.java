@@ -4,7 +4,7 @@ public class Config {
 
 
     // snapshot da imagem das instancias
-    public static final String AMI_ID = "ami-054a9047be6beca6b";
+    public static final String AMI_ID = "ami-0d2f92bc23648503f";
     // instancia free! nao mudar
     public static final String INSTANCE_TYPE = "t2.micro";
     // nome da chave
