@@ -360,6 +360,40 @@ public class LoadBalancer {
             Map<String, AttributeValue> queryParams = new HashMap<>();
             queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
             queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
+            queryParams.put(":upper_left_x",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getX0()))));
+            queryParams.put(":upper_left_y",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getY0()))));
+            queryParams.put(":lower_right_x",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getX1()))));
+            queryParams.put(":lower_right_y",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getY1()))));
+            queryParams.put(":start_x",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getXS()))));
+            queryParams.put(":start_y",
+                    new AttributeValue().withN(Integer.toString(Integer.parseInt(request.getYS()))));
+
+            DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
+                    .withKeyConditionExpression("image_name = :image_name")
+                    .withFilterExpression("solver_algorithm = :solver_algorithm" + " and upper_left_x = :upper_left_x"
+                            + " and upper_left_y = :upper_left_y" + " and lower_right_x = :lower_right_x"
+                            + " and lower_right_y = :lower_right_y" + " and start_x = :start_x"
+                            + " and start_y = :start_y")
+                    .withExpressionAttributeValues(queryParams);
+            queryResult = AmazonDynamoDBHelper.query(RequestMetrics.class, queryExpression);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return queryResult;
+    }
+
+    private static List<RequestMetrics> getMatchingMetricFromDB(Params request) {
+        System.out.println("getMatchingMetricFromDB");
+        List<RequestMetrics> queryResult = new ArrayList<>();
+        try {
+            Map<String, AttributeValue> queryParams = new HashMap<>();
+            queryParams.put(":solver_algorithm", new AttributeValue().withS(request.getAlgorithm()));
+            queryParams.put(":image_name", new AttributeValue().withS(request.getImage()));
 
             DynamoDBQueryExpression<RequestMetrics> queryExpression = new DynamoDBQueryExpression()
                     .withKeyConditionExpression("image_name = :image_name")
@@ -396,20 +430,24 @@ public class LoadBalancer {
         }
     }
 
-
-
     public static long getEstimatedCost(Params request) {
         System.out.println("getEstimatedCost");
         long eCost = -1;
         List<RequestMetrics> dbMetrics = null;
-        dbMetrics = getSimilarMetricsFromDB(request);
+        dbMetrics = getMatchingMetricFromDB(request);
         if (dbMetrics.size() == 0) {
             System.out.println("LoadBalancer: No matching requests on DynamoDB!");
-            dbMetrics = getSameImageMetricsFromDB(request);
-        } else {
-            for (RequestMetrics metric : dbMetrics) {
-                addToCache(metric);
+            dbMetrics = getSimilarMetricsFromDB(request);
+            if (dbMetrics.size() == 0) {
+                System.out.println("LoadBalancer: No similar requests on DynamoDB!");
+                dbMetrics = getSimilarMetricsFromDB(request);
+                if (dbMetrics.size() == 0) {
+                    dbMetrics = getSameImageMetricsFromDB(request);
+                }
             }
+        }
+        for (RequestMetrics metric : dbMetrics) {
+            addToCache(metric);
         }
         eCost = computeAverageCost(dbMetrics);
         return eCost;
