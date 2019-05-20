@@ -91,7 +91,7 @@ public class AutoScaler {
         timer.schedule(new CheckInstanceWorkloadTask(), STARTUP_DELAY, CHECK_DELAY);
 
         Timer otherTimer = new Timer();
-        otherTimer.schedule(new CheckInstanceStateTask(), STARTUP_DELAY * 2, CHECK_DELAY / 4);
+        otherTimer.schedule(new CheckInstanceStateTask(), STARTUP_DELAY * 6, CHECK_DELAY / 4);
     }
 
     /*
@@ -228,6 +228,7 @@ public class AutoScaler {
     }
 
     public static void checkInstancesState() throws MalformedURLException {
+        AutoScaler.executingAction = true;
         int numRetries = 0;
         System.out.println(Menu.ANSI_YELLOW + "======================");
         System.out.println("Check Instances State");
@@ -347,6 +348,7 @@ public class AutoScaler {
         }
 
         System.out.println("Total System Workload = " + totalSystemWorkload);
+        LoadBalancer.TOTAL_SYSTEM_WORKLOAD = totalSystemWorkload;
 
         if (minWorkLoadInstance == null) {
             System.out.println("AutoScaler: No instances found. Spawning new instance!");
@@ -377,8 +379,10 @@ public class AutoScaler {
         public void run() {
             try {
                 checkInstancesState();
+                AutoScaler.executingAction = false;
             } catch (MalformedURLException e) {
                 e.printStackTrace();
+                AutoScaler.executingAction = false;
             }
         }
     }

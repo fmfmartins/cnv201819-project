@@ -67,6 +67,8 @@ public class LoadBalancer {
     // Cache where the key is the image name
     private static Map<String, List<RequestMetrics>> cache;
 
+    public static long TOTAL_SYSTEM_WORKLOAD = 0;
+
     // Port
     private static final int port = 8000;
 
@@ -132,6 +134,8 @@ public class LoadBalancer {
                 reply += String.format("*=================================================*\n");
                 reply += String.format("* HillClimbing@Cloud - Group 2 - 2018/19 - MEIC-A *\n");
                 reply += String.format("*=================================================*\n");
+
+                reply += String.format("       Total System Workload : " + TOTAL_SYSTEM_WORKLOAD + "\n");
 
 
                 for (String dns : instancesCost.keySet()) {
@@ -229,6 +233,7 @@ public class LoadBalancer {
             processRequest(params);
 
             System.out.println(Menu.ANSI_PURPLE + "Request Cost = " + Menu.ANSI_RESET + params.getCost());
+            System.out.println(Menu.ANSI_PURPLE + "Total System Workload = " + Menu.ANSI_RESET + TOTAL_SYSTEM_WORKLOAD);
 
             // Get DNSName
             // LoadBalancer loadBalancer = LoadBalancer.getInstance();

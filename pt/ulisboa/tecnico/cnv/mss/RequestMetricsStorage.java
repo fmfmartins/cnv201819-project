@@ -23,7 +23,9 @@ public class RequestMetricsStorage {
     public static String getRequestsProgress() {
         String s = "";
         int i = 1;
+        int totalInstanceWorkload = 0;
         for (RequestMetrics metrics : metricsStorage.values()) {
+            totalInstanceWorkload += metrics.getEstimatedCost();
             int progress = (int) (((MetricsCalculator.computeWeight(metrics) * 100L) / metrics.getEstimatedCost()));
             if (progress > 100) {
                 progress = 99;
@@ -45,6 +47,7 @@ public class RequestMetricsStorage {
             s = builder.toString();
             i++;
         }
+        s += "Total Instance Workload = " + totalInstanceWorkload + "\n";
         return s;
     }
 
