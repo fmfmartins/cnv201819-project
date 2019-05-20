@@ -89,6 +89,7 @@ public class LoadBalancer {
 
             load_balancer.createContext("/climb", new SendQueryHandler());
             load_balancer.createContext("/test", new MyTestHandler());
+            load_balancer.createContext("/progress", new MyProgressHandler());
             load_balancer.setExecutor(Executors.newCachedThreadPool());
             load_balancer.start();
             System.out.println(load_balancer.getAddress().toString());
@@ -101,6 +102,66 @@ public class LoadBalancer {
     // ================================================================================
     // REQUEST HANDLERS
     // ================================================================================
+
+
+    static class MyProgressHandler implements HttpHandler{
+        @Override
+        public void handle(final HttpExchange t) throws IOException {
+            final Headers headers = t.getResponseHeaders();
+
+            System.out.println("LoadBalancer: Checking requests progress..");
+
+            int length = 0;
+
+            String reply = "";
+            reply += String.format("*==============================*");
+            reply += String.format("* HillClimbing@Cloud - Group 2 *");
+            reply += String.format("*==============================*");
+
+            length += reply.getBytes().length;
+
+            URL url;
+            HttpURLConnection con;
+            int responseCode = 500;
+            OutputStream os = t.getResponseBody();
+            for (String dns : instancesCost.keySet()){
+
+                reply += dns + "\n";
+                url = new URL("http://" + dns + ":8000/requestsprogress");
+                System.out.println("Sending request to -> " + url.toString());
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");    
+                responseCode = con.getResponseCode();
+                InputStream response = con.getInputStream();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int len;
+                String aux;
+                // read bytes from the input stream and store them in buffer
+                while ((len = response.read(buffer)) != -1) {
+                    // write bytes from the buffer into output stream
+                    aux = new String(buffer);
+                    reply += aux;
+                    length += len;
+                    bos.write(buffer, 0, len);
+                }
+            }
+
+            System.out.println("length : " + length);
+            System.out.println("reply length : " + reply.getBytes().length);
+
+            t.sendResponseHeaders(200, reply.getBytes().length); 
+            headers.add("Content-Type", "image/png");
+            headers.add("Access-Control-Allow-Origin", "*");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Allow-Methods", "POST, GET, HEAD, OPTIONS");
+            headers.add("Access-Control-Allow-Headers",
+                    "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+            
+            os.write(reply.getBytes());
+            os.close();
+        }
+    }
 
     static class MyTestHandler implements HttpHandler {
         @Override
