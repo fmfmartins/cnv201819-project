@@ -1,44 +1,30 @@
-Architecture
+HillClimbing@Cloud - Group 2 - MEIC-A
 
-The system will be run within the Amazon Web Services ecosystem and its architecture is organized in four main components: 
+Diogo Vaz - 83446 - diogo.vaz@tecnico.ulisboa.pt
+Filipe Martins - 83458 - filipe.f.martins@tecnico.ulisboa.pt
+Marcelo Silva - 83507 - marcelo.filipe.regra.da.silva@tecnico.ulisboa.pt 
 
-Web Servers
-Load Balancer
-Auto-Scaler
-Metrics Storage System (pt.ulisboa.tecnico.cnv.mss.RequestMetrics class stores the metrics for each thread. And the instrumentation tool used is named MyTool and it is placed inside the BIT/samples directory)
+Folder Structure:
 
-Currently both the Web Servers and the Metrics Storage System components are in practice implemented in the same instances.
+cnv-project/
+	BIT/	-> Where the BIT library class files are
+	datasets/	-> Folder with the heightmaps
+	pt/ulisboa/tecnico/cnv	-> Folder with the different packages of the system
+	hillclimbing.sh		<- Script that helps with compiling and running different components of the system
 
-The extracted metrics are also placed in a timestamped file inside the /tmp/ directory.
 
+To configure some necessary constants please refer to the pt.ulisboa.tecnico.cnv.loadbalancing.Config class and
+change the parameters as necessary.
 
-Configuration settings:
+In order to run the system one must simply run the script and then perform the following commands:
+clean
+build
+runLB
 
-AUTO-SCALER
-** Scaling Policies
-The set of defined rules at this point in time are the following :
-Scale Up
-    When AverageCPUUtilization >= 80 for 2 consecutive periods of 300 seconds add one instance
-Scale Down
-    When AverageCPUUtilization <= 40 for 300 seconds remove one instance
+Requirements :
 
-** Other settings
-Default Cooldown : 300 seconds
-Health Check Grace Period: 300 seconds
-Minimum Group Size: 1
-Maximum Group Size: 3
-
-LOAD BALANCER
-    Idle Timeout : 1020 seconds
-    Health Check Settings :
-	Ping Protocol: HTTP
-	Ping Port: 8000
-	Ping Path: /test
-	Response Timeout: 5 seconds
-	Interval: 30 seconds
-	Unhealthy threshold: 2 
-	Healthy threshold: 4
-
+AWS Java Source Development Kit.
+Update your environment variables accordingly in hillclimbing.sh
 
 
 
